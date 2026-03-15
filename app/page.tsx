@@ -1,10 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "./components/Button";
 import { Container } from "./components/Container";
+import { Modal } from "./components/Modal";
 import { Section } from "./components/Section";
 import { ImageWithFallback } from "./components/figma/image-with-fallback";
+import { LoginForm } from "./components/login-popup/LoginPopup";
 import { gradients, splashPageStyles } from "./constants/design-system";
 
 export default function Home() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
   return (
     <div className={splashPageStyles.root}>
       <Section variant="hero" className={splashPageStyles.hero.sectionPadding}>
@@ -25,7 +32,7 @@ export default function Home() {
             <Button type="button" variant="primary">
               Sign Up
             </Button>
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="secondary" onClick={() => setIsLoginModalOpen(true)}>
               Log In
             </Button>
           </div>
@@ -45,6 +52,10 @@ export default function Home() {
           </p>
         </Container>
       </Section>
+
+      <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)}>
+        <LoginForm onClose={() => setIsLoginModalOpen(false)} />
+      </Modal>
     </div>
   );
 }

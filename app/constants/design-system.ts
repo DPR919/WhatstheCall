@@ -124,9 +124,8 @@ export const gradients = {
  * Predefined button styles for consistency
  */
 export const buttonStyles = {
-  base: 'px-10 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 min-w-[160px]',
-  primary: 'bg-white text-gray-900',
-  secondary: 'bg-gray-900 text-white',
+  primary: 'cursor-pointer px-10 py-4 bg-white text-gray-900 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 min-w-[160px]',
+  secondary: 'cursor-pointer px-10 py-4 bg-gray-900 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 min-w-[160px]',
 } as const;
 
 /**
@@ -173,4 +172,28 @@ export const splashPageStyles = {
     title: 'mb-8 text-center text-4xl text-gray-900',
     body: 'text-lg leading-relaxed text-gray-700',
   },
+} as const;
+
+/**
+ * Modal styles
+ * Shared modal shell/title tokens for auth popups.
+ */
+export const modalStyles = {
+  backdrop: 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4',
+  container: 'bg-white rounded-lg shadow-xl max-w-md w-full p-8 relative',
+  closeButton: 'cursor-pointer absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors',
+  title: 'text-3xl mb-6 text-gray-900',
+} as const;
+
+/**
+ * Form styles
+ * Shared auth form spacing and controls.
+ */
+export const formStyles = {
+  inputGroup: 'mb-6',
+  label: 'block text-sm mb-2 text-gray-700',
+  input: 'w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent',
+  submitButton: 'cursor-pointer w-full px-6 py-3 bg-orange-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105',
+  link: 'cursor-pointer text-orange-600 hover:text-orange-700 transition-colors text-sm',
+  helperText: 'mt-4 text-center text-sm text-gray-600',
 } as const;

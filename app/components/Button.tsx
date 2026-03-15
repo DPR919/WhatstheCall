@@ -2,7 +2,7 @@ import { type ButtonHTMLAttributes, type ReactNode } from "react";
 import { buttonStyles } from "../constants/design-system";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: keyof Omit<typeof buttonStyles, "base">;
+  variant?: keyof typeof buttonStyles;
   children: ReactNode;
 }
 
@@ -18,7 +18,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${buttonStyles.base} ${buttonStyles[variant]} ${className}`}
+      className={`${buttonStyles[variant]} ${className}`}
       {...props}
     >
       {children}
