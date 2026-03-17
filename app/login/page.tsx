@@ -42,7 +42,7 @@ export default function LoginPage() {
       }
 
       setMessage("Login successful.");
-      router.push("/");
+      router.push("/main");
     } catch {
       setMessage("Unexpected error. Please try again.");
     } finally {

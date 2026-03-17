@@ -83,7 +83,8 @@ export async function POST(req: Request) {
     display_name: displayName,
     invited_by_user_id: inviterId,
     invite_code_used_id: invite.id,
-    referral_quota: 5,
+    referral_limit: 5,
+    referral_generated_count: 0,
     status: "active",
   });
 
