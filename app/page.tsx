@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "./components/Button";
 import { Container } from "./components/Container";
-import { Modal } from "./components/Modal";
 import { Section } from "./components/Section";
 import { ImageWithFallback } from "./components/figma/image-with-fallback";
-import { LoginForm } from "./components/login-popup/LoginPopup";
 import { gradients, splashPageStyles } from "./constants/design-system";
 
 export default function Home() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div className={splashPageStyles.root}>
@@ -29,10 +27,10 @@ export default function Home() {
           <h1 className={splashPageStyles.hero.title}>What&apos;s The Call?</h1>
 
           <div className={splashPageStyles.hero.actions}>
-            <Button type="button" variant="primary">
+            <Button type="button" variant="primary" onClick={() => router.push("/signup")}>
               Sign Up
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setIsLoginModalOpen(true)}>
+            <Button type="button" variant="secondary" onClick={() => router.push("/login")}>
               Log In
             </Button>
           </div>
@@ -52,10 +50,6 @@ export default function Home() {
           </p>
         </Container>
       </Section>
-
-      <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)}>
-        <LoginForm onClose={() => setIsLoginModalOpen(false)} />
-      </Modal>
     </div>
   );
 }
