@@ -45,8 +45,21 @@ export default function SignupPage() {
         return;
       }
 
-      setMessage("Signup successful. You can now log in.");
-      setForm(initialForm);
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+
+      const loginData = await loginResponse.json();
+
+      if (!loginResponse.ok) {
+        setMessage(loginData.error ?? "Signup succeeded, but auto-login failed. Please log in.");
+        return;
+      }
+
+      router.push("/main");
+      router.refresh();
     } catch {
       setMessage("Unexpected error. Please try again.");
     } finally {
