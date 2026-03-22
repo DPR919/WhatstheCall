@@ -58,7 +58,29 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2) Create auth user
+  // 2) Ensure display name is not already taken
+  const { data: existingDisplayNames, error: displayNameCheckError } =
+    await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("display_name", displayName)
+      .limit(1);
+
+  if (displayNameCheckError) {
+    return NextResponse.json(
+      { error: "Failed to validate display name." },
+      { status: 500 }
+    );
+  }
+
+  if (existingDisplayNames && existingDisplayNames.length > 0) {
+    return NextResponse.json(
+      { error: "Display name is already taken." },
+      { status: 400 }
+    );
+  }
+
+  // 3) Create auth user
   const { data: createdUser, error: createUserError } =
     await supabaseAdmin.auth.admin.createUser({
       email,
@@ -76,7 +98,7 @@ export async function POST(req: Request) {
   const newUserId = createdUser.user.id;
   const inviterId = invite.created_by_user_id ?? null;
 
-  // 3) Create profile row
+  // 4) Create profile row
   const { error: profileError } = await supabaseAdmin.from("profiles").insert({
     id: newUserId,
     email,
@@ -97,7 +119,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4) Record redemption
+  // 5) Record redemption
   const { error: redemptionError } = await supabaseAdmin
     .from("invite_redemptions")
     .insert({
@@ -114,7 +136,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 5) Increment invite usage
+  // 6) Increment invite usage
   const { error: updateInviteError } = await supabaseAdmin
     .from("invite_codes")
     .update({ use_count: invite.use_count + 1 })
