@@ -3,7 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const signupSchema = z.object({
-  email: z.string().email(),
+  email: z.string(),
   password: z.string().min(8),
   displayName: z.string().min(2).max(50),
   inviteCode: z.string().min(3).max(100),
