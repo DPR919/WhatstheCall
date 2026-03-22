@@ -9,6 +9,7 @@ import { formStyles } from "../constants/design-system";
 interface SignupFormState {
   email: string;
   password: string;
+  confirmPassword: string;
   displayName: string;
   inviteCode: string;
 }
@@ -16,6 +17,7 @@ interface SignupFormState {
 const initialForm: SignupFormState = {
   email: "",
   password: "",
+  confirmPassword: "",
   displayName: "",
   inviteCode: "",
 };
@@ -28,6 +30,12 @@ export default function SignupPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (form.password !== form.confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage("Submitting...");
 
@@ -35,7 +43,12 @@ export default function SignupPage() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          displayName: form.displayName,
+          inviteCode: form.inviteCode,
+        }),
       });
 
       const data = await response.json();
@@ -117,6 +130,22 @@ export default function SignupPage() {
                 type="password"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
+                minLength={8}
+                required
+              />
+            </div>
+
+            <div className={formStyles.inputGroup}>
+              <label htmlFor="confirmPassword" className={formStyles.label}>
+                Re-enter password
+              </label>
+              <input
+                id="confirmPassword"
+                className={formStyles.input}
+                placeholder="Re-enter your password"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
                 minLength={8}
                 required
               />
