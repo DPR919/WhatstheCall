@@ -31,6 +31,9 @@ export function VideoUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [randomClipUrl, setRandomClipUrl] = useState<string>("");
+  const [isLoadingRandomClip, setIsLoadingRandomClip] = useState(false);
+  const [randomClipError, setRandomClipError] = useState<string>("");
 
   const statusMessage = useMemo(() => getStatusMessage(status), [status]);
 
@@ -86,6 +89,31 @@ export function VideoUpload() {
     }
   }
 
+  async function handleShowRandomClip() {
+    setIsLoadingRandomClip(true);
+    setRandomClipError("");
+
+    try {
+      const response = await fetch("/api/videos/getvideo", {
+        method: "GET",
+      });
+
+      const payload = (await response.json()) as { videoUrl?: string; error?: string };
+
+      if (!response.ok || !payload.videoUrl) {
+        throw new Error(payload.error ?? "Could not load a clip.");
+      }
+
+      setRandomClipUrl(payload.videoUrl);
+    } catch (error) {
+      console.error("[VideoUpload] Failed to fetch random clip", error);
+      setRandomClipError(error instanceof Error ? error.message : "Unknown error loading clip.");
+      setRandomClipUrl("");
+    } finally {
+      setIsLoadingRandomClip(false);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-xl text-gray-900">Upload a video clip - manual deploy</h3>
@@ -114,6 +142,35 @@ export function VideoUpload() {
 
         {statusMessage ? <p className="text-sm text-gray-700">Status: {statusMessage}</p> : null}
         {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+      </div>
+
+      <div className="mt-8 border-t border-gray-200 pt-6">
+        <h3 className="mb-4 text-xl text-gray-900">Watch a random clip</h3>
+
+        <button
+          type="button"
+          onClick={handleShowRandomClip}
+          disabled={isLoadingRandomClip}
+          className="w-fit cursor-pointer rounded-full bg-orange-600 px-6 py-3 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoadingRandomClip ? "Loading..." : "Show me a random clip"}
+        </button>
+
+        {randomClipError ? <p className="mt-3 text-sm text-red-600">{randomClipError}</p> : null}
+
+        {randomClipUrl ? (
+          <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black">
+            <video
+              key={randomClipUrl}
+              controls
+              className="h-auto w-full"
+              src={randomClipUrl}
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        ) : null}
       </div>
     </div>
   );
