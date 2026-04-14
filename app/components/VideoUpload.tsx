@@ -7,6 +7,7 @@ type UploadStatus =
   | "no-file"
   | "creating-upload-url"
   | "uploading"
+  | "registering-clip"
   | "upload-complete"
   | "upload-failed";
 
@@ -18,6 +19,8 @@ function getStatusMessage(status: UploadStatus) {
       return "creating upload URL";
     case "uploading":
       return "uploading";
+    case "registering-clip":
+      return "registering uploaded clip";
     case "upload-complete":
       return "upload complete";
     case "upload-failed":
@@ -37,7 +40,10 @@ export function VideoUpload() {
 
   const statusMessage = useMemo(() => getStatusMessage(status), [status]);
 
-  const isBusy = status === "creating-upload-url" || status === "uploading";
+  const isBusy =
+    status === "creating-upload-url" ||
+    status === "uploading" ||
+    status === "registering-clip";
 
   async function handleUpload() {
     if (!file) {
@@ -65,7 +71,10 @@ export function VideoUpload() {
         throw new Error("Failed to create upload URL.");
       }
 
-      const { uploadUrl } = (await presignResponse.json()) as { uploadUrl: string; key: string };
+      const { uploadUrl, key } = (await presignResponse.json()) as {
+        uploadUrl: string;
+        key: string;
+      };
 
       setStatus("uploading");
 
@@ -79,6 +88,25 @@ export function VideoUpload() {
 
       if (!uploadResponse.ok) {
         throw new Error("Failed to upload file to S3.");
+      }
+
+      setStatus("registering-clip");
+
+      const registerResponse = await fetch("/api/videos/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ s3Key: key }),
+      });
+
+      const registerPayload = (await registerResponse.json()) as {
+        clip?: { id: string };
+        error?: string;
+      };
+
+      if (!registerResponse.ok || !registerPayload.clip?.id) {
+        throw new Error(registerPayload.error ?? "Failed to register uploaded clip.");
       }
 
       setStatus("upload-complete");
@@ -98,7 +126,12 @@ export function VideoUpload() {
         method: "GET",
       });
 
-      const payload = (await response.json()) as { videoUrl?: string; error?: string };
+      const payload = (await response.json()) as {
+        clipId?: string;
+        s3Key?: string;
+        videoUrl?: string;
+        error?: string;
+      };
 
       if (!response.ok || !payload.videoUrl) {
         throw new Error(payload.error ?? "Could not load a clip.");
