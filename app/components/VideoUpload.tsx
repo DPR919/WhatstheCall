@@ -11,6 +11,8 @@ type UploadStatus =
   | "upload-complete"
   | "upload-failed";
 
+type ClipResponse = "left" | "no_touch" | "right";
+
 function getStatusMessage(status: UploadStatus) {
   switch (status) {
     case "no-file":
@@ -35,8 +37,12 @@ export function VideoUpload() {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [randomClipUrl, setRandomClipUrl] = useState<string>("");
+  const [currentClipId, setCurrentClipId] = useState<string>("");
   const [isLoadingRandomClip, setIsLoadingRandomClip] = useState(false);
   const [randomClipError, setRandomClipError] = useState<string>("");
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
+  const [responseMessage, setResponseMessage] = useState<string>("");
+  const [responseError, setResponseError] = useState<string>("");
 
   const statusMessage = useMemo(() => getStatusMessage(status), [status]);
 
@@ -120,6 +126,8 @@ export function VideoUpload() {
   async function handleShowRandomClip() {
     setIsLoadingRandomClip(true);
     setRandomClipError("");
+    setResponseMessage("");
+    setResponseError("");
 
     try {
       const response = await fetch("/api/videos/getvideo", {
@@ -137,13 +145,54 @@ export function VideoUpload() {
         throw new Error(payload.error ?? "Could not load a clip.");
       }
 
+      setCurrentClipId(payload.clipId ?? "");
       setRandomClipUrl(payload.videoUrl);
     } catch (error) {
       console.error("[VideoUpload] Failed to fetch random clip", error);
       setRandomClipError(error instanceof Error ? error.message : "Unknown error loading clip.");
+      setCurrentClipId("");
       setRandomClipUrl("");
     } finally {
       setIsLoadingRandomClip(false);
+    }
+  }
+
+  async function handleSubmitResponse(responseValue: ClipResponse) {
+    if (!currentClipId) {
+      setResponseError("No clip is currently selected.");
+      return;
+    }
+
+    setIsSubmittingResponse(true);
+    setResponseMessage("");
+    setResponseError("");
+
+    try {
+      const response = await fetch("/api/videos/respond", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clipId: currentClipId,
+          response: responseValue,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to submit response.");
+      }
+
+      setResponseMessage("Response submitted.");
+    } catch (error) {
+      console.error("[VideoUpload] Failed to submit clip response", error);
+      setResponseError(error instanceof Error ? error.message : "Unknown response error.");
+    } finally {
+      setIsSubmittingResponse(false);
     }
   }
 
@@ -192,17 +241,52 @@ export function VideoUpload() {
         {randomClipError ? <p className="mt-3 text-sm text-red-600">{randomClipError}</p> : null}
 
         {randomClipUrl ? (
-          <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black">
-            <video
-              key={randomClipUrl}
-              controls
-              className="h-auto w-full"
-              src={randomClipUrl}
-              preload="metadata"
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
+          <>
+            <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black">
+              <video
+                key={randomClipUrl}
+                controls
+                className="h-auto w-full"
+                src={randomClipUrl}
+                preload="metadata"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => handleSubmitResponse("left")}
+                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                className="rounded-full bg-gray-900 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Left
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmitResponse("no_touch")}
+                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                className="rounded-full bg-gray-700 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                No Touch
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmitResponse("right")}
+                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                className="rounded-full bg-orange-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Right
+              </button>
+            </div>
+
+            {isSubmittingResponse ? (
+              <p className="mt-3 text-sm text-gray-700">Submitting response...</p>
+            ) : null}
+            {responseMessage ? <p className="mt-3 text-sm text-green-700">{responseMessage}</p> : null}
+            {responseError ? <p className="mt-3 text-sm text-red-600">{responseError}</p> : null}
+          </>
         ) : null}
       </div>
     </div>
