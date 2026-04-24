@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "../components/Button";
 import { Container } from "../components/Container";
+import { LogoutButton } from "../components/LogoutButton";
 import { Section } from "../components/Section";
 import { VideoUpload } from "../components/VideoUpload";
 
@@ -40,9 +40,7 @@ export default async function MainPage() {
             <h1 className="text-4xl text-gray-900">Welcome, {displayName}</h1>
 
             <form action={handleLogout}>
-              <Button type="submit" variant="secondary">
-                Log Out
-              </Button>
+              <LogoutButton />
             </form>
           </div>
 
