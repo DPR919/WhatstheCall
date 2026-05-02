@@ -321,45 +321,49 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
               </video>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => handleSubmitResponse("left")}
-                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                className="rounded-full bg-gray-900 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Left
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmitResponse("no_touch")}
-                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                className="rounded-full bg-gray-700 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                No Touch
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmitResponse("right")}
-                disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                className="rounded-full bg-orange-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Right
-              </button>
-              <button
-                type="button"
-                onClick={handleViewResults}
-                disabled={
-                  isSubmittingResponse ||
-                  isLoadingRandomClip ||
-                  isLoadingResults ||
-                  !currentClipId ||
-                  !hasSubmittedForCurrentClip
-                }
-                className="rounded-full bg-blue-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoadingResults ? "Loading results..." : "View response"}
-              </button>
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSubmitResponse("left")}
+                  disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                  className="rounded-full bg-gray-900 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitResponse("no_touch")}
+                  disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                  className="rounded-full bg-gray-700 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  No Touch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitResponse("right")}
+                  disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
+                  className="rounded-full bg-orange-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Right
+                </button>
+              </div>
+              <div className="flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={handleViewResults}
+                  disabled={
+                    isSubmittingResponse ||
+                    isLoadingRandomClip ||
+                    isLoadingResults ||
+                    !currentClipId ||
+                    !hasSubmittedForCurrentClip
+                  }
+                  className="rounded-full bg-blue-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingResults ? "Loading results..." : "View response"}
+                </button>
+              </div>
             </div>
 
             {isSubmittingResponse ? (
