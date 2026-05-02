@@ -32,7 +32,7 @@ function getStatusMessage(status: UploadStatus) {
   }
 }
 
-export function VideoUpload() {
+export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -197,36 +197,40 @@ export function VideoUpload() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 className="mb-4 text-xl text-gray-900">Upload a video clip - manual deploy</h3>
+    <div className="space-y-6">
+      {canUpload ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-xl text-gray-900">Upload a video clip - manual deploy</h3>
 
-      <div className="flex flex-col gap-4">
-        <input
-          type="file"
-          accept="video/*"
-          onChange={(event) => {
-            const nextFile = event.target.files?.[0] ?? null;
-            setFile(nextFile);
-            setStatus("idle");
-            setErrorMessage("");
-          }}
-          className="block w-full text-sm text-gray-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-orange-600 file:px-4 file:py-2 file:text-white hover:file:bg-orange-700"
-        />
+          <div className="flex flex-col gap-4">
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(event) => {
+                const nextFile = event.target.files?.[0] ?? null;
+                setFile(nextFile);
+                setStatus("idle");
+                setErrorMessage("");
+              }}
+              className="block w-full text-sm text-gray-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-orange-600 file:px-4 file:py-2 file:text-white hover:file:bg-orange-700"
+            />
 
-        <button
-          type="button"
-          onClick={handleUpload}
-          disabled={isBusy}
-          className="w-fit cursor-pointer rounded-full bg-gray-900 px-6 py-3 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isBusy ? "Working..." : "Upload"}
-        </button>
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={isBusy}
+              className="w-fit cursor-pointer rounded-full bg-gray-900 px-6 py-3 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isBusy ? "Working..." : "Upload"}
+            </button>
 
-        {statusMessage ? <p className="text-sm text-gray-700">Status: {statusMessage}</p> : null}
-        {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-      </div>
+            {statusMessage ? <p className="text-sm text-gray-700">Status: {statusMessage}</p> : null}
+            {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+          </div>
+        </div>
+      ) : null}
 
-      <div className="mt-8 border-t border-gray-200 pt-6">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-xl text-gray-900">Watch a random clip</h3>
 
         <button

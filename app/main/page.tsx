@@ -26,11 +26,12 @@ export default async function MainPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
   const displayName = profile?.display_name ?? user.email ?? "User";
+  const canUpload = profile?.role === "admin";
 
   return (
     <Section variant="gray" className="min-h-screen py-16">
@@ -45,7 +46,7 @@ export default async function MainPage() {
           </div>
 
           <div className="mt-8">
-            <VideoUpload />
+            <VideoUpload canUpload={canUpload} />
           </div>
         </div>
       </Container>
