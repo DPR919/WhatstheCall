@@ -13,6 +13,12 @@ type UploadStatus =
 
 type ClipResponse = "left" | "no_touch" | "right";
 
+type AggregatedResults = {
+  clipId: string;
+  total: number;
+  counts: Record<ClipResponse, number>;
+};
+
 function getStatusMessage(status: UploadStatus) {
   switch (status) {
     case "no-file":
@@ -43,6 +49,10 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
   const [responseMessage, setResponseMessage] = useState<string>("");
   const [responseError, setResponseError] = useState<string>("");
+  const [hasSubmittedForCurrentClip, setHasSubmittedForCurrentClip] = useState(false);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [resultsError, setResultsError] = useState<string>("");
+  const [aggregatedResults, setAggregatedResults] = useState<AggregatedResults | null>(null);
 
   const statusMessage = useMemo(() => getStatusMessage(status), [status]);
 
@@ -128,6 +138,9 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
     setRandomClipError("");
     setResponseMessage("");
     setResponseError("");
+    setHasSubmittedForCurrentClip(false);
+    setAggregatedResults(null);
+    setResultsError("");
 
     try {
       const response = await fetch("/api/videos/getvideo", {
@@ -152,6 +165,8 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
       setRandomClipError(error instanceof Error ? error.message : "Unknown error loading clip.");
       setCurrentClipId("");
       setRandomClipUrl("");
+      setHasSubmittedForCurrentClip(false);
+      setAggregatedResults(null);
     } finally {
       setIsLoadingRandomClip(false);
     }
@@ -188,11 +203,59 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
       }
 
       setResponseMessage("Response submitted.");
+      setHasSubmittedForCurrentClip(true);
     } catch (error) {
       console.error("[VideoUpload] Failed to submit clip response", error);
       setResponseError(error instanceof Error ? error.message : "Unknown response error.");
     } finally {
       setIsSubmittingResponse(false);
+    }
+  }
+
+  async function handleViewResults() {
+    if (!currentClipId) {
+      setResultsError("No clip is currently selected.");
+      return;
+    }
+
+    if (!hasSubmittedForCurrentClip) {
+      setResultsError("Submit your response first to view results.");
+      return;
+    }
+
+    setIsLoadingResults(true);
+    setResultsError("");
+
+    try {
+      const response = await fetch(
+        `/api/videos/results?clipId=${encodeURIComponent(currentClipId)}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const payload = (await response.json()) as {
+        clipId?: string;
+        total?: number;
+        counts?: Record<ClipResponse, number>;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.counts || typeof payload.total !== "number") {
+        throw new Error(payload.error ?? "Failed to load results.");
+      }
+
+      setAggregatedResults({
+        clipId: payload.clipId ?? currentClipId,
+        total: payload.total,
+        counts: payload.counts,
+      });
+    } catch (error) {
+      console.error("[VideoUpload] Failed to load aggregated results", error);
+      setResultsError(error instanceof Error ? error.message : "Unknown results error.");
+      setAggregatedResults(null);
+    } finally {
+      setIsLoadingResults(false);
     }
   }
 
@@ -283,6 +346,20 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
               >
                 Right
               </button>
+              <button
+                type="button"
+                onClick={handleViewResults}
+                disabled={
+                  isSubmittingResponse ||
+                  isLoadingRandomClip ||
+                  isLoadingResults ||
+                  !currentClipId ||
+                  !hasSubmittedForCurrentClip
+                }
+                className="rounded-full bg-blue-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoadingResults ? "Loading results..." : "View response"}
+              </button>
             </div>
 
             {isSubmittingResponse ? (
@@ -290,6 +367,43 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             ) : null}
             {responseMessage ? <p className="mt-3 text-sm text-green-700">{responseMessage}</p> : null}
             {responseError ? <p className="mt-3 text-sm text-red-600">{responseError}</p> : null}
+            {resultsError ? <p className="mt-3 text-sm text-red-600">{resultsError}</p> : null}
+
+            {aggregatedResults ? (
+              <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="mb-3 text-sm text-gray-700">
+                  Other users' responses ({aggregatedResults.total} total)
+                </p>
+
+                {([
+                  ["Left", aggregatedResults.counts.left],
+                  ["No Touch", aggregatedResults.counts.no_touch],
+                  ["Right", aggregatedResults.counts.right],
+                ] as const).map(([label, count]) => {
+                  const percent =
+                    aggregatedResults.total > 0
+                      ? Math.round((count / aggregatedResults.total) * 100)
+                      : 0;
+
+                  return (
+                    <div key={label} className="mb-3 last:mb-0">
+                      <div className="mb-1 flex items-center justify-between text-sm text-gray-800">
+                        <span>{label}</span>
+                        <span>
+                          {count} ({percent}%)
+                        </span>
+                      </div>
+                      <div className="h-3 w-full overflow-hidden rounded bg-gray-200">
+                        <div
+                          className="h-full rounded bg-orange-500 transition-all"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>
