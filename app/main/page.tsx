@@ -4,6 +4,7 @@ import { Container } from "../components/Container";
 import { LogoutButton } from "../components/LogoutButton";
 import { Section } from "../components/Section";
 import { VideoUpload } from "../components/VideoUpload";
+import Image from "next/image";
 
 export default async function MainPage() {
   async function handleLogout() {
@@ -34,18 +35,57 @@ export default async function MainPage() {
   const canUpload = profile?.role === "admin";
 
   return (
-    <Section variant="gray" className="min-h-screen py-16">
+    <Section variant="gray" className="min-h-screen py-8">
       <Container size="sm">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-4xl text-gray-900">Welcome, {displayName}</h1>
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <div className="mb-8 flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Main page
+              </p>
+              <h1 className="mt-1 text-3xl text-gray-900">Welcome, {displayName}</h1>
+            </div>
 
-            <form action={handleLogout}>
-              <LogoutButton />
-            </form>
+            <details className="relative">
+              <summary className="list-none cursor-pointer rounded-full border-2 border-gray-200 transition hover:border-gray-400 focus:outline-none">
+                <Image
+                  src="/images/homepage/pfp.jpg"
+                  alt="User profile picture"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded-full object-cover"
+                />
+              </summary>
+
+              <div className="absolute right-0 z-20 mt-3 w-52 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                <button
+                  type="button"
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Settings
+                </button>
+                <div className="border-t border-gray-200 p-2">
+                  <form action={handleLogout}>
+                    <LogoutButton />
+                  </form>
+                </div>
+              </div>
+            </details>
           </div>
 
-          <div className="mt-8">
+          <div className="mb-8 rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+            <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">
+              my recent clips
+            </p>
+          </div>
+
+          <div>
             <VideoUpload canUpload={canUpload} />
           </div>
         </div>

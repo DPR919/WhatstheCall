@@ -376,7 +376,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             {aggregatedResults ? (
               <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <p className="mb-3 text-sm text-gray-700">
-                  Other users' responses ({aggregatedResults.total} total)
+                  Other users&apos; responses ({aggregatedResults.total} total)
                 </p>
 
                 {([
