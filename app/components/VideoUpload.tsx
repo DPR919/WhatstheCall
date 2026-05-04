@@ -260,10 +260,12 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {canUpload ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-xl text-gray-900">Upload a video clip - manual deploy</h3>
+        <div className="space-y-5">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+            Upload a video clip
+          </h3>
 
           <div className="flex flex-col gap-4">
             <input
@@ -293,14 +295,17 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-xl text-gray-900">Watch a random clip</h3>
+      <div className="rounded-xl border border-gray-200/90 bg-gray-50/40 p-6 shadow-sm md:p-8">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+          Primary action
+        </h3>
+        <p className="mb-6 text-2xl text-gray-900">Watch a random clip</p>
 
         <button
           type="button"
           onClick={handleShowRandomClip}
           disabled={isLoadingRandomClip}
-          className="w-fit cursor-pointer rounded-full bg-orange-600 px-6 py-3 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mb-2 w-fit cursor-pointer rounded-full bg-orange-600 px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoadingRandomClip ? "Loading..." : "Show me a random clip"}
         </button>
@@ -322,7 +327,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             </div>
 
             <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={() => handleSubmitResponse("left")}
@@ -348,7 +353,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                   Right
                 </button>
               </div>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center">
                 <button
                   type="button"
                   onClick={handleViewResults}

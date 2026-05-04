@@ -133,11 +133,12 @@ export const buttonStyles = {
  * Shared max-width and centering tokens
  */
 export const containerStyles = {
-  base: 'mx-auto',
+  base: 'mx-auto w-full px-6 md:px-8',
   size: {
     sm: 'max-w-2xl',
     md: 'max-w-3xl',
     lg: 'max-w-4xl',
+    xl: 'max-w-[1150px]',
   },
 } as const;
 

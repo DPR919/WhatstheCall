@@ -35,15 +35,15 @@ export default async function MainPage() {
   const canUpload = profile?.role === "admin";
 
   return (
-    <Section variant="gray" className="min-h-screen py-8">
-      <Container size="sm">
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <div className="mb-8 flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
+    <Section variant="gray" className="min-h-screen py-10 md:py-12">
+      <Container size="xl">
+        <div className="space-y-10">
+          <div className="flex items-start justify-between gap-4 border-b border-gray-200 pb-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Main page
               </p>
-              <h1 className="mt-1 text-3xl text-gray-900">Welcome, {displayName}</h1>
+              <h1 className="mt-2 text-4xl text-gray-900">Welcome, {displayName}</h1>
             </div>
 
             <details className="relative">
@@ -68,6 +68,12 @@ export default async function MainPage() {
                   type="button"
                   className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                 >
+                  My recent clips
+                </button>
+                <button
+                  type="button"
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
                   Settings
                 </button>
                 <div className="border-t border-gray-200 p-2">
@@ -77,12 +83,6 @@ export default async function MainPage() {
                 </div>
               </div>
             </details>
-          </div>
-
-          <div className="mb-8 rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">
-              my recent clips
-            </p>
           </div>
 
           <div>
