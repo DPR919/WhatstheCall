@@ -5,6 +5,7 @@ import { LogoutButton } from "../components/LogoutButton";
 import { Section } from "../components/Section";
 import { VideoUpload } from "../components/VideoUpload";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function MainPage() {
   async function handleLogout() {
@@ -64,12 +65,12 @@ export default async function MainPage() {
                 >
                   Profile
                 </button>
-                <button
-                  type="button"
+                <Link
+                  href="/main/recent-clips"
                   className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                 >
                   My recent clips
-                </button>
+                </Link>
                 <button
                   type="button"
                   className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
