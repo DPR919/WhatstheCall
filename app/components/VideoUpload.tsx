@@ -370,7 +370,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             <textarea
               value={clipMetadata.notes}
               onChange={(event) => setClipMetadataField("notes", event.target.value)}
-              placeholder="Notes"
+              placeholder="Notes (Optional)"
               rows={3}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
             />
