@@ -5,7 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 
 const registerClipSchema = z.object({
   s3Key: z.string().trim().min(1).max(2048),
+  title: z.string().trim().max(300).optional(),
+  eventName: z.string().trim().max(300).optional(),
+  leftFencer: z.string().trim().max(200).optional(),
+  rightFencer: z.string().trim().max(200).optional(),
+  weapon: z.string().trim().max(100).optional(),
+  sourceUrl: z.string().trim().url().max(2048).optional().or(z.literal("")),
+  notes: z.string().trim().max(5000).optional(),
+  scoreAtTouch: z.string().trim().max(100).optional(),
 });
+
+function emptyToNull(value?: string) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 export async function POST(req: Request) {
   try {
@@ -17,7 +31,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
 
-    const { s3Key } = parsed.data;
+    const { s3Key, title, eventName, leftFencer, rightFencer, weapon, sourceUrl, notes, scoreAtTouch } =
+      parsed.data;
 
     const supabase = await createClient();
     const {
@@ -36,8 +51,18 @@ export async function POST(req: Request) {
         s3_key: s3Key,
         uploaded_by_user_id: user.id,
         status: "active",
+        title: emptyToNull(title),
+        event_name: emptyToNull(eventName),
+        left_fencer: emptyToNull(leftFencer),
+        right_fencer: emptyToNull(rightFencer),
+        weapon: emptyToNull(weapon),
+        source_url: emptyToNull(sourceUrl),
+        notes: emptyToNull(notes),
+        score_at_touch: emptyToNull(scoreAtTouch),
       })
-      .select("id, s3_key, uploaded_by_user_id, status, created_at")
+      .select(
+        "id, s3_key, uploaded_by_user_id, status, created_at, title, event_name, left_fencer, right_fencer, weapon, source_url, notes, score_at_touch",
+      )
       .single();
 
     if (!insertError && insertedClip) {
@@ -49,7 +74,9 @@ export async function POST(req: Request) {
     if (isDuplicateKey) {
       const { data: existingClip, error: fetchExistingError } = await supabaseAdmin
         .from("clips")
-        .select("id, s3_key, uploaded_by_user_id, status, created_at")
+        .select(
+          "id, s3_key, uploaded_by_user_id, status, created_at, title, event_name, left_fencer, right_fencer, weapon, source_url, notes, score_at_touch",
+        )
         .eq("s3_key", s3Key)
         .maybeSingle();
 

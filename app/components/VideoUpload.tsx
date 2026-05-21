@@ -19,6 +19,17 @@ type AggregatedResults = {
   counts: Record<ClipResponse, number>;
 };
 
+type ClipMetadataForm = {
+  title: string;
+  eventName: string;
+  leftFencer: string;
+  rightFencer: string;
+  weapon: string;
+  sourceUrl: string;
+  notes: string;
+  scoreAtTouch: string;
+};
+
 function getStatusMessage(status: UploadStatus) {
   switch (status) {
     case "no-file":
@@ -40,6 +51,16 @@ function getStatusMessage(status: UploadStatus) {
 
 export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
+  const [clipMetadata, setClipMetadata] = useState<ClipMetadataForm>({
+    title: "",
+    eventName: "",
+    leftFencer: "",
+    rightFencer: "",
+    weapon: "",
+    sourceUrl: "",
+    notes: "",
+    scoreAtTouch: "",
+  });
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [randomClipUrl, setRandomClipUrl] = useState<string>("");
@@ -60,6 +81,10 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
     status === "creating-upload-url" ||
     status === "uploading" ||
     status === "registering-clip";
+
+  const setClipMetadataField = <K extends keyof ClipMetadataForm>(key: K, value: ClipMetadataForm[K]) => {
+    setClipMetadata((prev) => ({ ...prev, [key]: value }));
+  };
 
   async function handleUpload() {
     if (!file) {
@@ -113,7 +138,17 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ s3Key: key }),
+        body: JSON.stringify({
+          s3Key: key,
+          title: clipMetadata.title,
+          eventName: clipMetadata.eventName,
+          leftFencer: clipMetadata.leftFencer,
+          rightFencer: clipMetadata.rightFencer,
+          weapon: clipMetadata.weapon,
+          sourceUrl: clipMetadata.sourceUrl,
+          notes: clipMetadata.notes,
+          scoreAtTouch: clipMetadata.scoreAtTouch,
+        }),
       });
 
       const registerPayload = (await registerResponse.json()) as {
@@ -278,6 +313,66 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                 setErrorMessage("");
               }}
               className="block w-full text-sm text-gray-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-orange-600 file:px-4 file:py-2 file:text-white hover:file:bg-orange-700"
+            />
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                type="text"
+                value={clipMetadata.title}
+                onChange={(event) => setClipMetadataField("title", event.target.value)}
+                placeholder="Clip title"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                value={clipMetadata.eventName}
+                onChange={(event) => setClipMetadataField("eventName", event.target.value)}
+                placeholder="Event name"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                value={clipMetadata.leftFencer}
+                onChange={(event) => setClipMetadataField("leftFencer", event.target.value)}
+                placeholder="Left fencer"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                value={clipMetadata.rightFencer}
+                onChange={(event) => setClipMetadataField("rightFencer", event.target.value)}
+                placeholder="Right fencer"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                value={clipMetadata.weapon}
+                onChange={(event) => setClipMetadataField("weapon", event.target.value)}
+                placeholder="Weapon"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="url"
+                value={clipMetadata.sourceUrl}
+                onChange={(event) => setClipMetadataField("sourceUrl", event.target.value)}
+                placeholder="Source URL"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                value={clipMetadata.scoreAtTouch}
+                onChange={(event) => setClipMetadataField("scoreAtTouch", event.target.value)}
+                placeholder="Score at touch"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+
+            <textarea
+              value={clipMetadata.notes}
+              onChange={(event) => setClipMetadataField("notes", event.target.value)}
+              placeholder="Notes"
+              rows={3}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
             />
 
             <button
