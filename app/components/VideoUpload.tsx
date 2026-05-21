@@ -92,6 +92,24 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
       return;
     }
 
+    const requiredMetadataChecks: Array<[label: string, value: string]> = [
+      ["Title", clipMetadata.title],
+      ["Event name", clipMetadata.eventName],
+      ["Left fencer", clipMetadata.leftFencer],
+      ["Right fencer", clipMetadata.rightFencer],
+      ["Weapon", clipMetadata.weapon],
+      ["Source URL", clipMetadata.sourceUrl],
+      ["Score at touch", clipMetadata.scoreAtTouch],
+    ];
+
+    const firstMissingField = requiredMetadataChecks.find(([, value]) => value.trim().length === 0);
+
+    if (firstMissingField) {
+      setErrorMessage(`${firstMissingField[0]} is required.`);
+      setStatus("upload-failed");
+      return;
+    }
+
     setErrorMessage("");
 
     try {
@@ -320,49 +338,49 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                 type="text"
                 value={clipMetadata.title}
                 onChange={(event) => setClipMetadataField("title", event.target.value)}
-                placeholder="Clip title"
+                placeholder="Clip title *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
                 value={clipMetadata.eventName}
                 onChange={(event) => setClipMetadataField("eventName", event.target.value)}
-                placeholder="Event name"
+                placeholder="Event name *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
                 value={clipMetadata.leftFencer}
                 onChange={(event) => setClipMetadataField("leftFencer", event.target.value)}
-                placeholder="Left fencer"
+                placeholder="Left fencer *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
                 value={clipMetadata.rightFencer}
                 onChange={(event) => setClipMetadataField("rightFencer", event.target.value)}
-                placeholder="Right fencer"
+                placeholder="Right fencer *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
                 value={clipMetadata.weapon}
                 onChange={(event) => setClipMetadataField("weapon", event.target.value)}
-                placeholder="Weapon"
+                placeholder="Weapon *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="url"
                 value={clipMetadata.sourceUrl}
                 onChange={(event) => setClipMetadataField("sourceUrl", event.target.value)}
-                placeholder="Source URL"
+                placeholder="Source URL *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
                 value={clipMetadata.scoreAtTouch}
                 onChange={(event) => setClipMetadataField("scoreAtTouch", event.target.value)}
-                placeholder="Score at touch"
+                placeholder="Score at touch *"
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
@@ -370,7 +388,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             <textarea
               value={clipMetadata.notes}
               onChange={(event) => setClipMetadataField("notes", event.target.value)}
-              placeholder="Notes (Optional)"
+              placeholder="Notes (optional)"
               rows={3}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
             />

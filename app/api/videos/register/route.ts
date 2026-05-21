@@ -5,14 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 
 const registerClipSchema = z.object({
   s3Key: z.string().trim().min(1).max(2048),
-  title: z.string().trim().max(300).optional(),
-  eventName: z.string().trim().max(300).optional(),
-  leftFencer: z.string().trim().max(200).optional(),
-  rightFencer: z.string().trim().max(200).optional(),
-  weapon: z.string().trim().max(100).optional(),
-  sourceUrl: z.string().trim().url().max(2048).optional().or(z.literal("")),
+  title: z.string().trim().min(1).max(300),
+  eventName: z.string().trim().min(1).max(300),
+  leftFencer: z.string().trim().min(1).max(200),
+  rightFencer: z.string().trim().min(1).max(200),
+  weapon: z.string().trim().min(1).max(100),
+  sourceUrl: z.string().trim().url().max(2048),
   notes: z.string().trim().max(5000).optional(),
-  scoreAtTouch: z.string().trim().max(100).optional(),
+  scoreAtTouch: z.string().trim().min(1).max(100),
 });
 
 function emptyToNull(value?: string) {
