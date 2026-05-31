@@ -71,6 +71,14 @@ export default async function MainPage() {
                 >
                   My recent clips
                 </Link>
+                {canUpload ? (
+                  <Link
+                    href="/main/uploaded-videos"
+                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    My uploaded videos
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
@@ -89,6 +97,21 @@ export default async function MainPage() {
           <div>
             <VideoUpload canUpload={canUpload} />
           </div>
+
+          {canUpload ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl text-gray-900">My uploaded videos</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                View and review the clips you have uploaded.
+              </p>
+              <Link
+                href="/main/uploaded-videos"
+                className="mt-4 inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-800 transition hover:bg-gray-50"
+              >
+                Go to my uploaded videos
+              </Link>
+            </div>
+          ) : null}
         </div>
       </Container>
     </Section>
