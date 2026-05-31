@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type UploadStatus =
   | "idle"
@@ -30,6 +30,17 @@ type ClipMetadataForm = {
   scoreAtTouch: string;
 };
 
+const INITIAL_CLIP_METADATA: ClipMetadataForm = {
+  title: "",
+  eventName: "",
+  leftFencer: "",
+  rightFencer: "",
+  weapon: "",
+  sourceUrl: "",
+  notes: "",
+  scoreAtTouch: "",
+};
+
 function getStatusMessage(status: UploadStatus) {
   switch (status) {
     case "no-file":
@@ -50,17 +61,9 @@ function getStatusMessage(status: UploadStatus) {
 }
 
 export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [clipMetadata, setClipMetadata] = useState<ClipMetadataForm>({
-    title: "",
-    eventName: "",
-    leftFencer: "",
-    rightFencer: "",
-    weapon: "",
-    sourceUrl: "",
-    notes: "",
-    scoreAtTouch: "",
-  });
+  const [clipMetadata, setClipMetadata] = useState<ClipMetadataForm>(INITIAL_CLIP_METADATA);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [randomClipUrl, setRandomClipUrl] = useState<string>("");
@@ -178,6 +181,11 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
         throw new Error(registerPayload.error ?? "Failed to register uploaded clip.");
       }
 
+      setFile(null);
+      setClipMetadata(INITIAL_CLIP_METADATA);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setStatus("upload-complete");
     } catch (error) {
       console.error("[VideoUpload] Upload failed", error);
@@ -322,6 +330,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
 
           <div className="flex flex-col gap-4">
             <input
+              ref={fileInputRef}
               type="file"
               accept="video/*"
               onChange={(event) => {
