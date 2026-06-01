@@ -30,6 +30,31 @@ type ClipMetadataForm = {
   scoreAtTouch: string;
 };
 
+type SharedBatchMetadata = {
+  eventName: string;
+  leftFencer: string;
+  rightFencer: string;
+  weapon: string;
+  sourceUrl: string;
+};
+
+type BatchClipRow = {
+  id: string;
+  file: File;
+  title: string;
+  scoreAtTouch: string;
+  notes: string;
+};
+
+type BatchRowStatus = "queued" | "creating-upload-url" | "uploading" | "registering" | "success" | "failed";
+
+type BatchRowResult = {
+  id: string;
+  fileName: string;
+  status: BatchRowStatus;
+  error?: string;
+};
+
 const INITIAL_CLIP_METADATA: ClipMetadataForm = {
   title: "",
   eventName: "",
@@ -40,6 +65,24 @@ const INITIAL_CLIP_METADATA: ClipMetadataForm = {
   notes: "",
   scoreAtTouch: "",
 };
+
+const INITIAL_BATCH_SHARED_METADATA: SharedBatchMetadata = {
+  eventName: "",
+  leftFencer: "",
+  rightFencer: "",
+  weapon: "",
+  sourceUrl: "",
+};
+
+function createBatchClipRow(file: File): BatchClipRow {
+  return {
+    id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+    file,
+    title: "",
+    scoreAtTouch: "",
+    notes: "",
+  };
+}
 
 function getStatusMessage(status: UploadStatus) {
   switch (status) {
@@ -63,6 +106,13 @@ function getStatusMessage(status: UploadStatus) {
 export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [batchClipRows, setBatchClipRows] = useState<BatchClipRow[]>([]);
+  const [batchSharedMetadata, setBatchSharedMetadata] = useState<SharedBatchMetadata>(
+    INITIAL_BATCH_SHARED_METADATA,
+  );
+  const [batchResults, setBatchResults] = useState<BatchRowResult[]>([]);
+  const [batchCompletedCount, setBatchCompletedCount] = useState(0);
   const [clipMetadata, setClipMetadata] = useState<ClipMetadataForm>(INITIAL_CLIP_METADATA);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -89,7 +139,260 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
     setClipMetadata((prev) => ({ ...prev, [key]: value }));
   };
 
+  const setBatchSharedMetadataField = <K extends keyof SharedBatchMetadata>(
+    key: K,
+    value: SharedBatchMetadata[K],
+  ) => {
+    setBatchSharedMetadata((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateBatchClipRow = <K extends keyof Omit<BatchClipRow, "id" | "file">>(
+    id: string,
+    key: K,
+    value: BatchClipRow[K],
+  ) => {
+    setBatchClipRows((prev) => prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+  };
+
+  const removeBatchClipRow = (id: string) => {
+    setBatchClipRows((prev) => prev.filter((row) => row.id !== id));
+    setBatchResults((prev) => prev.filter((row) => row.id !== id));
+  };
+
+  const updateBatchRowResult = (id: string, update: Partial<BatchRowResult>) => {
+    setBatchResults((prev) =>
+      prev.map((result) => (result.id === id ? { ...result, ...update } : result)),
+    );
+  };
+
+  async function uploadAndRegisterClip(payload: {
+    fileToUpload: File;
+    title: string;
+    eventName: string;
+    leftFencer: string;
+    rightFencer: string;
+    weapon: string;
+    sourceUrl: string;
+    notes: string;
+    scoreAtTouch: string;
+  }) {
+    const presignResponse = await fetch("/api/videos/presign", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileName: payload.fileToUpload.name,
+        fileType: payload.fileToUpload.type,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      throw new Error("Failed to create upload URL.");
+    }
+
+    const { uploadUrl, key } = (await presignResponse.json()) as {
+      uploadUrl: string;
+      key: string;
+    };
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": payload.fileToUpload.type,
+      },
+      body: payload.fileToUpload,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Failed to upload file to S3.");
+    }
+
+    const registerResponse = await fetch("/api/videos/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        s3Key: key,
+        title: payload.title,
+        eventName: payload.eventName,
+        leftFencer: payload.leftFencer,
+        rightFencer: payload.rightFencer,
+        weapon: payload.weapon,
+        sourceUrl: payload.sourceUrl,
+        notes: payload.notes,
+        scoreAtTouch: payload.scoreAtTouch,
+      }),
+    });
+
+    const registerPayload = (await registerResponse.json()) as {
+      clip?: { id: string };
+      error?: string;
+    };
+
+    if (!registerResponse.ok || !registerPayload.clip?.id) {
+      throw new Error(registerPayload.error ?? "Failed to register uploaded clip.");
+    }
+  }
+
   async function handleUpload() {
+    if (isBatchMode) {
+      if (batchClipRows.length === 0) {
+        setErrorMessage("Select at least one video file for batch upload.");
+        setStatus("upload-failed");
+        return;
+      }
+
+      const sharedRequiredChecks: Array<[label: string, value: string]> = [
+        ["Event name", batchSharedMetadata.eventName],
+        ["Left fencer", batchSharedMetadata.leftFencer],
+        ["Right fencer", batchSharedMetadata.rightFencer],
+        ["Weapon", batchSharedMetadata.weapon],
+        ["Source URL", batchSharedMetadata.sourceUrl],
+      ];
+
+      const firstMissingShared = sharedRequiredChecks.find(([, value]) => value.trim().length === 0);
+      if (firstMissingShared) {
+        setErrorMessage(`${firstMissingShared[0]} is required for batch upload.`);
+        setStatus("upload-failed");
+        return;
+      }
+
+      const invalidRow = batchClipRows.find(
+        (row) => row.title.trim().length === 0 || row.scoreAtTouch.trim().length === 0,
+      );
+
+      if (invalidRow) {
+        setErrorMessage(
+          `Title and score at touch are required for each clip. Missing values for ${invalidRow.file.name}.`,
+        );
+        setStatus("upload-failed");
+        return;
+      }
+
+      setErrorMessage("");
+      setStatus("uploading");
+      setBatchCompletedCount(0);
+      const initialBatchResults: BatchRowResult[] = batchClipRows.map((row) => ({
+        id: row.id,
+        fileName: row.file.name,
+        status: "queued",
+      }));
+      setBatchResults(initialBatchResults);
+      const finalResults: BatchRowResult[] = [...initialBatchResults];
+
+      let completed = 0;
+
+      for (const row of batchClipRows) {
+        try {
+          updateBatchRowResult(row.id, { status: "creating-upload-url", error: undefined });
+
+          const presignResponse = await fetch("/api/videos/presign", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fileName: row.file.name,
+              fileType: row.file.type,
+            }),
+          });
+
+          if (!presignResponse.ok) {
+            throw new Error("Failed to create upload URL.");
+          }
+
+          const { uploadUrl, key } = (await presignResponse.json()) as {
+            uploadUrl: string;
+            key: string;
+          };
+
+          updateBatchRowResult(row.id, { status: "uploading" });
+
+          const uploadResponse = await fetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": row.file.type,
+            },
+            body: row.file,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error("Failed to upload file to S3.");
+          }
+
+          updateBatchRowResult(row.id, { status: "registering" });
+
+          const registerResponse = await fetch("/api/videos/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              s3Key: key,
+              title: row.title,
+              eventName: batchSharedMetadata.eventName,
+              leftFencer: batchSharedMetadata.leftFencer,
+              rightFencer: batchSharedMetadata.rightFencer,
+              weapon: batchSharedMetadata.weapon,
+              sourceUrl: batchSharedMetadata.sourceUrl,
+              notes: row.notes,
+              scoreAtTouch: row.scoreAtTouch,
+            }),
+          });
+
+          const registerPayload = (await registerResponse.json()) as {
+            clip?: { id: string };
+            error?: string;
+          };
+
+          if (!registerResponse.ok || !registerPayload.clip?.id) {
+            throw new Error(registerPayload.error ?? "Failed to register uploaded clip.");
+          }
+
+          updateBatchRowResult(row.id, { status: "success", error: undefined });
+          const resultIndex = finalResults.findIndex((result) => result.id === row.id);
+          if (resultIndex >= 0) {
+            finalResults[resultIndex] = {
+              ...finalResults[resultIndex],
+              status: "success",
+              error: undefined,
+            };
+          }
+        } catch (error) {
+          console.error("[VideoUpload] Batch upload item failed", error);
+          const errorMessage = error instanceof Error ? error.message : "Unknown upload error.";
+          updateBatchRowResult(row.id, {
+            status: "failed",
+            error: errorMessage,
+          });
+          const resultIndex = finalResults.findIndex((result) => result.id === row.id);
+          if (resultIndex >= 0) {
+            finalResults[resultIndex] = {
+              ...finalResults[resultIndex],
+              status: "failed",
+              error: errorMessage,
+            };
+          }
+        } finally {
+          completed += 1;
+          setBatchCompletedCount(completed);
+        }
+      }
+
+      const hadFailures = finalResults.some((result) => result.status === "failed");
+      setStatus(hadFailures ? "upload-failed" : "upload-complete");
+      if (!hadFailures) {
+        setBatchClipRows([]);
+        setBatchSharedMetadata(INITIAL_BATCH_SHARED_METADATA);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+      return;
+    }
+
     if (!file) {
       setStatus("no-file");
       return;
@@ -117,69 +420,17 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
 
     try {
       setStatus("creating-upload-url");
-
-      const presignResponse = await fetch("/api/videos/presign", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-        }),
+      await uploadAndRegisterClip({
+        fileToUpload: file,
+        title: clipMetadata.title,
+        eventName: clipMetadata.eventName,
+        leftFencer: clipMetadata.leftFencer,
+        rightFencer: clipMetadata.rightFencer,
+        weapon: clipMetadata.weapon,
+        sourceUrl: clipMetadata.sourceUrl,
+        notes: clipMetadata.notes,
+        scoreAtTouch: clipMetadata.scoreAtTouch,
       });
-
-      if (!presignResponse.ok) {
-        throw new Error("Failed to create upload URL.");
-      }
-
-      const { uploadUrl, key } = (await presignResponse.json()) as {
-        uploadUrl: string;
-        key: string;
-      };
-
-      setStatus("uploading");
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file to S3.");
-      }
-
-      setStatus("registering-clip");
-
-      const registerResponse = await fetch("/api/videos/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          s3Key: key,
-          title: clipMetadata.title,
-          eventName: clipMetadata.eventName,
-          leftFencer: clipMetadata.leftFencer,
-          rightFencer: clipMetadata.rightFencer,
-          weapon: clipMetadata.weapon,
-          sourceUrl: clipMetadata.sourceUrl,
-          notes: clipMetadata.notes,
-          scoreAtTouch: clipMetadata.scoreAtTouch,
-        }),
-      });
-
-      const registerPayload = (await registerResponse.json()) as {
-        clip?: { id: string };
-        error?: string;
-      };
-
-      if (!registerResponse.ok || !registerPayload.clip?.id) {
-        throw new Error(registerPayload.error ?? "Failed to register uploaded clip.");
-      }
 
       setFile(null);
       setClipMetadata(INITIAL_CLIP_METADATA);
@@ -328,79 +579,259 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             Upload a video clip
           </h3>
 
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700">Batch mode</span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsBatchMode((prev) => !prev);
+                setStatus("idle");
+                setErrorMessage("");
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+                setFile(null);
+                setBatchClipRows([]);
+                setBatchResults([]);
+                setBatchCompletedCount(0);
+              }}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                isBatchMode ? "bg-orange-600" : "bg-gray-300"
+              }`}
+              aria-pressed={isBatchMode}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  isBatchMode ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+            <span className="text-xs text-gray-500">{isBatchMode ? "On" : "Off"}</span>
+          </div>
+
           <div className="flex flex-col gap-4">
             <input
               ref={fileInputRef}
               type="file"
               accept="video/*"
+              multiple={isBatchMode}
               onChange={(event) => {
-                const nextFile = event.target.files?.[0] ?? null;
-                setFile(nextFile);
+                const files = Array.from(event.target.files ?? []);
+                if (isBatchMode) {
+                  setBatchClipRows(files.map(createBatchClipRow));
+                } else {
+                  const nextFile = files[0] ?? null;
+                  setFile(nextFile);
+                }
                 setStatus("idle");
                 setErrorMessage("");
+                setBatchResults([]);
+                setBatchCompletedCount(0);
               }}
               className="block w-full text-sm text-gray-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-orange-600 file:px-4 file:py-2 file:text-white hover:file:bg-orange-700"
             />
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                type="text"
-                value={clipMetadata.title}
-                onChange={(event) => setClipMetadataField("title", event.target.value)}
-                placeholder="Clip title *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="text"
-                value={clipMetadata.eventName}
-                onChange={(event) => setClipMetadataField("eventName", event.target.value)}
-                placeholder="Event name *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="text"
-                value={clipMetadata.leftFencer}
-                onChange={(event) => setClipMetadataField("leftFencer", event.target.value)}
-                placeholder="Left fencer *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="text"
-                value={clipMetadata.rightFencer}
-                onChange={(event) => setClipMetadataField("rightFencer", event.target.value)}
-                placeholder="Right fencer *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="text"
-                value={clipMetadata.weapon}
-                onChange={(event) => setClipMetadataField("weapon", event.target.value)}
-                placeholder="Weapon *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="url"
-                value={clipMetadata.sourceUrl}
-                onChange={(event) => setClipMetadataField("sourceUrl", event.target.value)}
-                placeholder="Source URL *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-              <input
-                type="text"
-                value={clipMetadata.scoreAtTouch}
-                onChange={(event) => setClipMetadataField("scoreAtTouch", event.target.value)}
-                placeholder="Score at touch *"
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-              />
-            </div>
+            {isBatchMode ? (
+              <>
+                <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    Shared match metadata
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <input
+                      type="text"
+                      value={batchSharedMetadata.eventName}
+                      onChange={(event) =>
+                        setBatchSharedMetadataField("eventName", event.target.value)
+                      }
+                      placeholder="Event name *"
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      value={batchSharedMetadata.leftFencer}
+                      onChange={(event) =>
+                        setBatchSharedMetadataField("leftFencer", event.target.value)
+                      }
+                      placeholder="Left fencer *"
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      value={batchSharedMetadata.rightFencer}
+                      onChange={(event) =>
+                        setBatchSharedMetadataField("rightFencer", event.target.value)
+                      }
+                      placeholder="Right fencer *"
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      value={batchSharedMetadata.weapon}
+                      onChange={(event) => setBatchSharedMetadataField("weapon", event.target.value)}
+                      placeholder="Weapon *"
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                    />
+                    <input
+                      type="url"
+                      value={batchSharedMetadata.sourceUrl}
+                      onChange={(event) =>
+                        setBatchSharedMetadataField("sourceUrl", event.target.value)
+                      }
+                      placeholder="Source URL *"
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 md:col-span-2"
+                    />
+                  </div>
+                </div>
 
-            <textarea
-              value={clipMetadata.notes}
-              onChange={(event) => setClipMetadataField("notes", event.target.value)}
-              placeholder="Notes (optional)"
-              rows={3}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-            />
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                      Per-clip details
+                    </p>
+                    {batchClipRows.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBatchClipRows([]);
+                          setBatchResults([]);
+                          setBatchCompletedCount(0);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Clear all
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {batchClipRows.length === 0 ? (
+                    <p className="text-sm text-gray-600">Select multiple files to start batch upload.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {batchClipRows.map((row, index) => {
+                        const rowResult = batchResults.find((result) => result.id === row.id);
+                        return (
+                          <div key={row.id} className="rounded-md border border-gray-200 p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="truncate text-sm font-medium text-gray-900">
+                                {index + 1}. {row.file.name}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => removeBatchClipRow(row.id)}
+                                className="text-xs text-red-600 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                              <input
+                                type="text"
+                                value={row.title}
+                                onChange={(event) =>
+                                  updateBatchClipRow(row.id, "title", event.target.value)
+                                }
+                                placeholder="Clip title *"
+                                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                              />
+                              <input
+                                type="text"
+                                value={row.scoreAtTouch}
+                                onChange={(event) =>
+                                  updateBatchClipRow(row.id, "scoreAtTouch", event.target.value)
+                                }
+                                placeholder="Score at touch *"
+                                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                              />
+                              <textarea
+                                value={row.notes}
+                                onChange={(event) =>
+                                  updateBatchClipRow(row.id, "notes", event.target.value)
+                                }
+                                placeholder="Notes (optional)"
+                                rows={2}
+                                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 md:col-span-2"
+                              />
+                            </div>
+                            {rowResult ? (
+                              <p className="mt-2 text-xs text-gray-600">
+                                Status: {rowResult.status}
+                                {rowResult.error ? ` — ${rowResult.error}` : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input
+                    type="text"
+                    value={clipMetadata.title}
+                    onChange={(event) => setClipMetadataField("title", event.target.value)}
+                    placeholder="Clip title *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={clipMetadata.eventName}
+                    onChange={(event) => setClipMetadataField("eventName", event.target.value)}
+                    placeholder="Event name *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={clipMetadata.leftFencer}
+                    onChange={(event) => setClipMetadataField("leftFencer", event.target.value)}
+                    placeholder="Left fencer *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={clipMetadata.rightFencer}
+                    onChange={(event) => setClipMetadataField("rightFencer", event.target.value)}
+                    placeholder="Right fencer *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={clipMetadata.weapon}
+                    onChange={(event) => setClipMetadataField("weapon", event.target.value)}
+                    placeholder="Weapon *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="url"
+                    value={clipMetadata.sourceUrl}
+                    onChange={(event) => setClipMetadataField("sourceUrl", event.target.value)}
+                    placeholder="Source URL *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={clipMetadata.scoreAtTouch}
+                    onChange={(event) => setClipMetadataField("scoreAtTouch", event.target.value)}
+                    placeholder="Score at touch *"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+
+                <textarea
+                  value={clipMetadata.notes}
+                  onChange={(event) => setClipMetadataField("notes", event.target.value)}
+                  placeholder="Notes (optional)"
+                  rows={3}
+                  className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                />
+              </>
+            )}
 
             <button
               type="button"
@@ -412,6 +843,11 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
             </button>
 
             {statusMessage ? <p className="text-sm text-gray-700">Status: {statusMessage}</p> : null}
+            {isBatchMode && batchClipRows.length > 0 ? (
+              <p className="text-sm text-gray-700">
+                Batch progress: {batchCompletedCount}/{batchClipRows.length}
+              </p>
+            ) : null}
             {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
           </div>
         </div>
