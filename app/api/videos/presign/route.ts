@@ -3,6 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { s3Client } from "@/lib/aws/s3";
+import { createClient } from "@/lib/supabase/server";
 
 const presignBodySchema = z.object({
   fileName: z.string().min(1).max(255),
@@ -33,6 +34,16 @@ function sanitizeFileName(fileName: string) {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const body = await req.json();
     const parsed = presignBodySchema.safeParse(body);
 
