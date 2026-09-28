@@ -28,12 +28,12 @@ export default async function MainPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, role")
+    .select("display_name, role, status")
     .eq("id", user.id)
     .maybeSingle();
 
   const displayName = profile?.display_name ?? user.email ?? "User";
-  const canUpload = profile?.role === "admin";
+  const canUpload = profile?.role === "admin" && profile.status === "active";
 
   return (
     <Section variant="gray" className="min-h-screen py-10 md:py-12">

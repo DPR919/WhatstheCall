@@ -45,6 +45,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return NextResponse.json({ error: "Failed to verify upload access." }, { status: 500 });
+    }
+    if (profile?.role !== "admin" || profile.status !== "active") {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
     const { data: insertedClip, error: insertError } = await supabaseAdmin
       .from("clips")
       .insert({
