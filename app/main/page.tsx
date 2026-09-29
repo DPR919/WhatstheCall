@@ -71,6 +71,12 @@ export default async function MainPage() {
                 >
                   My recent clips
                 </Link>
+                <Link
+                  href="/main/invites"
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  My invites
+                </Link>
                 {canUpload ? (
                   <Link
                     href="/main/uploaded-videos"

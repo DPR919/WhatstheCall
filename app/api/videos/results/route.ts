@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isActiveMember } from "@/lib/supabase/access";
 
 const getResultsSchema = z.object({
   clipId: z.string().uuid(),
@@ -26,8 +27,12 @@ export async function GET(req: Request) {
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (authError || !user?.email_confirmed_at) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    if (!(await isActiveMember(user.id))) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
     const { clipId } = parsed.data;

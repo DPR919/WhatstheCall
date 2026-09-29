@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isActiveMember } from "@/lib/supabase/access";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -18,13 +19,18 @@ export async function POST(req: Request) {
   const { email, password } = parsed.data;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data.user.email_confirmed_at || !(await isActiveMember(data.user.id))) {
+    await supabase.auth.signOut();
+    return NextResponse.json({ error: "Account is not active or email is unverified." }, { status: 403 });
   }
 
   return NextResponse.json({ success: true });

@@ -8,16 +8,12 @@ import { formStyles } from "../constants/design-system";
 
 interface SignupFormState {
   email: string;
-  password: string;
-  confirmPassword: string;
   displayName: string;
   inviteCode: string;
 }
 
 const initialForm: SignupFormState = {
   email: "",
-  password: "",
-  confirmPassword: "",
   displayName: "",
   inviteCode: "",
 };
@@ -31,11 +27,6 @@ export default function SignupPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (form.password !== form.confirmPassword) {
-      setMessage("Passwords do not match.");
-      return;
-    }
-
     setIsSubmitting(true);
     setMessage("Submitting...");
 
@@ -45,7 +36,6 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: form.email,
-          password: form.password,
           displayName: form.displayName,
           inviteCode: form.inviteCode,
         }),
@@ -58,21 +48,8 @@ export default function SignupPage() {
         return;
       }
 
-      const loginResponse = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, password: form.password }),
-      });
-
-      const loginData = await loginResponse.json();
-
-      if (!loginResponse.ok) {
-        setMessage(loginData.error ?? "Signup succeeded, but auto-login failed. Please log in.");
-        return;
-      }
-
-      router.push("/main");
-      router.refresh();
+      setMessage("Check your email for an invitation link. Open it to set your password.");
+      setForm(initialForm);
     } catch {
       setMessage("Unexpected error. Please try again.");
     } finally {
@@ -85,7 +62,7 @@ export default function SignupPage() {
       <Container size="sm">
         <div className="rounded-lg bg-white p-8 shadow-md">
           <h1 className="mb-2 text-4xl text-gray-900">Create your account</h1>
-          <p className="mb-8 text-sm text-gray-600">Enter your details and invite code to get started.</p>
+          <p className="mb-8 text-sm text-gray-600">Enter your details and a member&apos;s invite code. We&apos;ll email you a link to set your password.</p>
 
           <form onSubmit={handleSubmit}>
             <div className={formStyles.inputGroup}>
@@ -120,38 +97,6 @@ export default function SignupPage() {
             </div>
 
             <div className={formStyles.inputGroup}>
-              <label htmlFor="password" className={formStyles.label}>
-                Password
-              </label>
-              <input
-                id="password"
-                className={formStyles.input}
-                placeholder="At least 8 characters"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
-                minLength={8}
-                required
-              />
-            </div>
-
-            <div className={formStyles.inputGroup}>
-              <label htmlFor="confirmPassword" className={formStyles.label}>
-                Re-enter password
-              </label>
-              <input
-                id="confirmPassword"
-                className={formStyles.input}
-                placeholder="Re-enter your password"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
-                minLength={8}
-                required
-              />
-            </div>
-
-            <div className={formStyles.inputGroup}>
               <label htmlFor="inviteCode" className={formStyles.label}>
                 Invite code
               </label>
@@ -168,7 +113,7 @@ export default function SignupPage() {
             </div>
 
             <button type="submit" className={formStyles.submitButton} disabled={isSubmitting}>
-              {isSubmitting ? "Creating account..." : "Create account"}
+              {isSubmitting ? "Sending invitation..." : "Send invitation email"}
             </button>
           </form>
 

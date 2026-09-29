@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Invitation signup release
+
+Each verified, active member can generate five codes over their lifetime. A code can be claimed once. Signup sends a Supabase **Invite user** email; the recipient opens the link and sets a password. The sender is recorded on the new profile.
+
+The [invitation functions migration](supabase/migrations/20260929054949_invitation_signup.sql) is already applied to the live Supabase project, so local code generation can be tested. At launch, apply the separate [legacy code retirement migration](supabase/migrations/20260929060000_retire_legacy_invite_codes.sql). It deactivates creatorless codes, including the remaining multi-use seed code. The new signup flow rejects creatorless codes even before that retirement migration is applied.
+
+In the Supabase dashboard, complete these launch settings:
+
+1. Under **Authentication → URL Configuration**, set the Site URL to `https://whatsthecall.net` and allow `https://whatsthecall.net/accept-invite` as a redirect URL. For local email testing, also allow `http://localhost:3000/accept-invite`.
+2. Under **Authentication → Sign In / Providers**, disable public user signups when deploying this flow. Admin invitations still create users. Keep email confirmation enabled.
+3. Under **Authentication → Emails → Templates**, check the **Invite user** template. Its link must use `{{ .ConfirmationURL }}` so the invited user reaches `/accept-invite` after verification. This is separate from the password recovery template.
+4. Set `SITE_URL=https://whatsthecall.net` in the deployed app environment. Locally, `SITE_URL=http://localhost:3000` is optional because that is the development default.
+5. Test a fresh code with a new email address: the second claim should fail, the invite email should arrive, the link should open the password form, and login should work after setting a password. Check that the inviter has four codes remaining and one redemption.
+
+The Supabase project has working custom SMTP, and the Invite user email and redirect have passed a local end-to-end registration test. Repeat the test on the deployed app at launch.
+
 ## Getting Started
 
 First, run the development server:

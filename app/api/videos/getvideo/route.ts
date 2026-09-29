@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { s3Client } from "@/lib/aws/s3";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isActiveMember } from "@/lib/supabase/access";
 
 function getRequiredBucketName() {
   const bucketName = process.env.S3_BUCKET_NAME;
@@ -127,9 +128,13 @@ export async function GET() {
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (authError || !user?.email_confirmed_at) {
       console.error("[videos/getvideo] Unauthorized request", authError);
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    if (!(await isActiveMember(user.id))) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
     const { data: activeClips, error: clipsError } = await supabaseAdmin
