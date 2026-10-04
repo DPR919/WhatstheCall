@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type RecentClipItem = {
   id: string;
@@ -51,37 +52,37 @@ export function RecentClipsList({ groupedRecentClips }: Props) {
   return (
     <>
       {Object.keys(groupedRecentClips).length === 0 ? (
-        <p className="text-sm text-gray-600">You have not responded to any clips yet.</p>
+        <div className="empty-state"><p className="panel-title">Your call history starts here.</p><p className="quiet mt-2 mb-5">Make your first call, then return to replay it.</p><Link href="/main" className="primary-btn">Call a clip ↗</Link></div>
       ) : (
         <div className="space-y-6">
           {Object.entries(groupedRecentClips).map(([dateLabel, clips]) => (
-            <div key={dateLabel} className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">{dateLabel}</p>
+            <div key={dateLabel}>
+              <p className="collection-date">{dateLabel}</p>
 
-              <div className="space-y-2">
+              <div>
                 {clips.map((clip) => (
                   <div
                     key={clip.id}
-                    className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 md:flex-row md:items-center md:justify-between"
+                    className="collection-row"
                   >
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-700">
-                        Submitted at{" "}
+                    <div>
+                      <p className="collection-row-meta">
+                        Called at{" "}
                         {new Date(clip.createdAt).toLocaleTimeString("en-US", {
                           hour: "numeric",
                           minute: "2-digit",
                         })}
                       </p>
-                      <p className="text-sm text-gray-900">Clip title: Placeholder clip title</p>
-                      <p className="text-sm text-gray-700">you called {clip.response} to this clip</p>
+                      <h2 className="collection-row-title">Action replay</h2>
+                      <span className="tag">Your call: {clip.response === "no_touch" ? "No touch" : `Touch for ${clip.response}`}</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleWatchAgain(clip.clipId)}
-                      className="inline-flex w-fit items-center rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-800 transition hover:bg-gray-50"
+                      className="ghost-btn"
                     >
-                      Watch this clip again
+                      Watch again →
                     </button>
                   </div>
                 ))}
@@ -92,24 +93,24 @@ export function RecentClipsList({ groupedRecentClips }: Props) {
       )}
 
       {selectedClipId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-3xl rounded-xl bg-white p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg text-gray-900">Clip replay</h2>
+        <div className="replay-backdrop" role="dialog" aria-modal="true" aria-label="Clip replay">
+          <div className="replay-modal">
+            <div className="replay-modal-head">
+              <h2>Watch again.</h2>
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                className="ghost-btn"
               >
                 Close
               </button>
             </div>
 
-            {isLoadingVideo ? <p className="text-sm text-gray-700">Loading clip...</p> : null}
-            {modalError ? <p className="text-sm text-red-600">{modalError}</p> : null}
+            {isLoadingVideo ? <p className="status-note" role="status">Loading clip...</p> : null}
+            {modalError ? <p className="status-note" data-error="true" role="alert">{modalError}</p> : null}
 
             {selectedVideoUrl ? (
-              <video src={selectedVideoUrl} controls autoPlay className="w-full rounded-md border border-gray-200" />
+              <video src={selectedVideoUrl} controls autoPlay className="w-full" aria-label="Replay of a previously called fencing clip" />
             ) : null}
           </div>
         </div>

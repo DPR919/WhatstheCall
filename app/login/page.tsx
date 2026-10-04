@@ -2,8 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Container } from "../components/Container";
-import { Section } from "../components/Section";
+import { AuthShell } from "../components/AuthShell";
 import { formStyles } from "../constants/design-system";
 
 interface LoginFormState {
@@ -51,12 +50,7 @@ export default function LoginPage() {
   };
 
   return (
-    <Section variant="gray" className="min-h-screen py-16">
-      <Container size="sm">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-2 text-4xl text-gray-900">Log In</h1>
-          <p className="mb-8 text-sm text-gray-600">Welcome back. Sign in to continue.</p>
-
+    <AuthShell eyebrow="Welcome back" heading="Your next call awaits." description="Sign in to continue studying actions and comparing decisions.">
           <form onSubmit={handleSubmit}>
             <div className={formStyles.inputGroup}>
               <label htmlFor="email" className={formStyles.label}>
@@ -94,9 +88,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}
+          {message && <p className="status-note mt-4" role="status">{message}</p>}
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="auth-bottom">
             Need an account?{" "}
             <button
               type="button"
@@ -106,8 +100,6 @@ export default function LoginPage() {
               Sign up
             </button>
           </div>
-        </div>
-      </Container>
-    </Section>
+    </AuthShell>
   );
 }

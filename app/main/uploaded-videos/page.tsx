@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Container } from "../../components/Container";
-import { Section } from "../../components/Section";
 
 export default async function UploadedVideosPage() {
   const supabase = await createClient();
@@ -34,28 +31,18 @@ export default async function UploadedVideosPage() {
     .limit(100);
 
   return (
-    <Section variant="gray" className="min-h-screen py-10 md:py-12">
-      <Container size="xl">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-3xl text-gray-900">My uploaded videos</h1>
-            <Link
-              href="/main"
-              className="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-800 transition hover:bg-gray-50"
-            >
-              Back to main page
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            {!uploadedClips || uploadedClips.length === 0 ? (
-              <p className="text-sm text-gray-600">You have not uploaded any videos yet.</p>
-            ) : (
-              <div className="space-y-4">
-                {uploadedClips.map((clip) => (
-                  <div key={clip.id} className="rounded-lg border border-gray-200 p-4">
-                    <h2 className="text-lg text-gray-900">{clip.title ?? "Untitled clip"}</h2>
-                    <p className="mt-1 text-sm text-gray-600">
+    <div className="member-content page-wrap">
+      <header className="page-intro"><div><p className="eyebrow">The clip library</p><h1 className="page-title">Uploaded videos.</h1><p className="lede">A record of the actions you&apos;ve added for the community.</p></div><span className="tag">Admin collection</span></header>
+      <div className="paper-panel">
+        {!uploadedClips || uploadedClips.length === 0 ? (
+          <div className="empty-state"><h2 className="panel-title">No videos yet.</h2><p className="quiet">Upload an action from the clip desk to see it here.</p></div>
+        ) : (
+          <ul>
+            {uploadedClips.map((clip) => (
+              <li key={clip.id} className="list-row">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div><p className="eyebrow">{clip.weapon ?? "Fencing action"}</p><h2 className="collection-row-title">{clip.title ?? "Untitled clip"}</h2></div>
+                  <p className="collection-row-meta">
                       {new Date(clip.created_at).toLocaleString("en-US", {
                         year: "numeric",
                         month: "short",
@@ -63,8 +50,9 @@ export default async function UploadedVideosPage() {
                         hour: "numeric",
                         minute: "2-digit",
                       })}
-                    </p>
-                    <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-700 md:grid-cols-2">
+                  </p>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
                       <p>
                         <span className="font-medium">Event:</span> {clip.event_name ?? "—"}
                       </p>
@@ -87,7 +75,7 @@ export default async function UploadedVideosPage() {
                             href={clip.source_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-blue-600 hover:underline"
+                            className="text-link"
                           >
                             Open link
                           </a>
@@ -95,14 +83,12 @@ export default async function UploadedVideosPage() {
                           "—"
                         )}
                       </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </Container>
-    </Section>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }

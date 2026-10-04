@@ -29,9 +29,9 @@ export function GenerateInviteButton({ disabled }: { disabled: boolean }) {
 
   return <div>
     <button type="button" onClick={generate} disabled={disabled || busy}
-      className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+      className="primary-btn">
       {busy ? "Creating..." : "Create invite code"}
     </button>
-    {message && <p className="mt-3 text-sm text-gray-700">{message}</p>}
+    {message && <p className="status-note mt-3" role="status">{message}</p>}
   </div>;
 }

@@ -571,13 +571,13 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
     }
   }
 
-  return (
-    <div className="space-y-8">
-      {canUpload ? (
-        <div className="space-y-5">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-            Upload a video clip
-          </h3>
+  const uploadPanel = canUpload ? (
+        <div className="admin-upload space-y-5">
+          <div>
+            <p className="eyebrow">For administrators</p>
+            <h3>Upload new actions</h3>
+            <p className="quiet text-sm">Add one clip or a batch to the community library.</p>
+          </div>
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-700">Batch mode</span>
@@ -598,6 +598,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
               className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
                 isBatchMode ? "bg-orange-600" : "bg-gray-300"
               }`}
+              aria-label="Batch mode"
               aria-pressed={isBatchMode}
             >
               <span
@@ -615,6 +616,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
               type="file"
               accept="video/*"
               multiple={isBatchMode}
+              aria-label={isBatchMode ? "Select video clips" : "Select a video clip"}
               onChange={(event) => {
                 const files = Array.from(event.target.files ?? []);
                 if (isBatchMode) {
@@ -628,7 +630,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                 setBatchResults([]);
                 setBatchCompletedCount(0);
               }}
-              className="block w-full text-sm text-gray-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-orange-600 file:px-4 file:py-2 file:text-white hover:file:bg-orange-700"
+              className="block w-full text-sm"
             />
 
             {isBatchMode ? (
@@ -644,7 +646,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                       onChange={(event) =>
                         setBatchSharedMetadataField("eventName", event.target.value)
                       }
-                      placeholder="Event name *"
+                      aria-label="Event name" placeholder="Event name *"
                       className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                     <input
@@ -653,7 +655,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                       onChange={(event) =>
                         setBatchSharedMetadataField("leftFencer", event.target.value)
                       }
-                      placeholder="Left fencer *"
+                      aria-label="Left fencer" placeholder="Left fencer *"
                       className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                     <input
@@ -662,14 +664,14 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                       onChange={(event) =>
                         setBatchSharedMetadataField("rightFencer", event.target.value)
                       }
-                      placeholder="Right fencer *"
+                      aria-label="Right fencer" placeholder="Right fencer *"
                       className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                     <input
                       type="text"
                       value={batchSharedMetadata.weapon}
                       onChange={(event) => setBatchSharedMetadataField("weapon", event.target.value)}
-                      placeholder="Weapon *"
+                      aria-label="Weapon" placeholder="Weapon *"
                       className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                     <input
@@ -678,7 +680,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                       onChange={(event) =>
                         setBatchSharedMetadataField("sourceUrl", event.target.value)
                       }
-                      placeholder="Source URL *"
+                      aria-label="Source URL" placeholder="Source URL *"
                       className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 md:col-span-2"
                     />
                   </div>
@@ -734,7 +736,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                                 onChange={(event) =>
                                   updateBatchClipRow(row.id, "title", event.target.value)
                                 }
-                                placeholder="Clip title *"
+                                aria-label="Clip title" placeholder="Clip title *"
                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                               />
                               <input
@@ -743,7 +745,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                                 onChange={(event) =>
                                   updateBatchClipRow(row.id, "scoreAtTouch", event.target.value)
                                 }
-                                placeholder="Score at touch *"
+                                aria-label="Score at touch" placeholder="Score at touch *"
                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                               />
                               <textarea
@@ -751,7 +753,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                                 onChange={(event) =>
                                   updateBatchClipRow(row.id, "notes", event.target.value)
                                 }
-                                placeholder="Notes (optional)"
+                                aria-label="Notes (optional)" placeholder="Notes (optional)"
                                 rows={2}
                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 md:col-span-2"
                               />
@@ -776,49 +778,49 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                     type="text"
                     value={clipMetadata.title}
                     onChange={(event) => setClipMetadataField("title", event.target.value)}
-                    placeholder="Clip title *"
+                    aria-label="Clip title" placeholder="Clip title *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="text"
                     value={clipMetadata.eventName}
                     onChange={(event) => setClipMetadataField("eventName", event.target.value)}
-                    placeholder="Event name *"
+                    aria-label="Event name" placeholder="Event name *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="text"
                     value={clipMetadata.leftFencer}
                     onChange={(event) => setClipMetadataField("leftFencer", event.target.value)}
-                    placeholder="Left fencer *"
+                    aria-label="Left fencer" placeholder="Left fencer *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="text"
                     value={clipMetadata.rightFencer}
                     onChange={(event) => setClipMetadataField("rightFencer", event.target.value)}
-                    placeholder="Right fencer *"
+                    aria-label="Right fencer" placeholder="Right fencer *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="text"
                     value={clipMetadata.weapon}
                     onChange={(event) => setClipMetadataField("weapon", event.target.value)}
-                    placeholder="Weapon *"
+                    aria-label="Weapon" placeholder="Weapon *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="url"
                     value={clipMetadata.sourceUrl}
                     onChange={(event) => setClipMetadataField("sourceUrl", event.target.value)}
-                    placeholder="Source URL *"
+                    aria-label="Source URL" placeholder="Source URL *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                   <input
                     type="text"
                     value={clipMetadata.scoreAtTouch}
                     onChange={(event) => setClipMetadataField("scoreAtTouch", event.target.value)}
-                    placeholder="Score at touch *"
+                    aria-label="Score at touch" placeholder="Score at touch *"
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
@@ -826,7 +828,7 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                 <textarea
                   value={clipMetadata.notes}
                   onChange={(event) => setClipMetadataField("notes", event.target.value)}
-                  placeholder="Notes (optional)"
+                  aria-label="Notes (optional)" placeholder="Notes (optional)"
                   rows={3}
                   className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                 />
@@ -837,81 +839,82 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
               type="button"
               onClick={handleUpload}
               disabled={isBusy}
-              className="w-fit cursor-pointer rounded-full bg-gray-900 px-6 py-3 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+              className="primary-btn w-fit"
             >
               {isBusy ? "Working..." : "Upload"}
             </button>
 
-            {statusMessage ? <p className="text-sm text-gray-700">Status: {statusMessage}</p> : null}
+            {statusMessage ? <p className="status-note" role="status">Status: {statusMessage}</p> : null}
             {isBatchMode && batchClipRows.length > 0 ? (
               <p className="text-sm text-gray-700">
                 Batch progress: {batchCompletedCount}/{batchClipRows.length}
               </p>
             ) : null}
-            {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+            {errorMessage ? <p className="status-note" data-error="true" role="alert">{errorMessage}</p> : null}
           </div>
         </div>
-      ) : null}
+      ) : null;
 
-      <div className="rounded-xl border border-gray-200/90 bg-gray-50/40 p-6 shadow-sm md:p-8">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-          Primary action
-        </h3>
-        <p className="mb-6 text-2xl text-gray-900">Watch a random clip</p>
+  return (
+    <div className="clip-workspace">
+      <section className="clip-call-card" aria-labelledby="call-section-title">
+        <div className="clip-call-intro">
+          <div>
+            <p className="eyebrow">Clip study / Your decision</p>
+            <h2 id="call-section-title" className="panel-title">Read the action.</h2>
+            <p>Watch closely, make your call, then compare it with the community.</p>
+          </div>
+          {randomClipUrl ? (
+            <button type="button" onClick={handleShowRandomClip} disabled={isLoadingRandomClip} className="secondary-btn">
+              {isLoadingRandomClip ? "Loading..." : "Another clip ↗"}
+            </button>
+          ) : null}
+        </div>
+        <div className="clip-call-body">
+          {randomClipError ? <p className="status-note mb-4" data-error="true" role="alert">{randomClipError}</p> : null}
 
-        <button
-          type="button"
-          onClick={handleShowRandomClip}
-          disabled={isLoadingRandomClip}
-          className="mb-2 w-fit cursor-pointer rounded-full bg-orange-600 px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isLoadingRandomClip ? "Loading..." : "Show me a random clip"}
-        </button>
-
-        {randomClipError ? <p className="mt-3 text-sm text-red-600">{randomClipError}</p> : null}
-
-        {randomClipUrl ? (
-          <>
-            <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black">
+          {randomClipUrl ? (
+            <>
+            <div className="clip-player">
               <video
                 key={randomClipUrl}
                 controls
-                className="h-auto w-full"
                 src={randomClipUrl}
                 preload="metadata"
+                aria-label="Fencing clip to review"
               >
                 Your browser does not support the video tag.
               </video>
             </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
+            <h3 className="call-question">What is your call?</h3>
+            <p className="call-help">Choose the outcome you would award for this action.</p>
+            <div className="call-options">
                 <button
                   type="button"
                   onClick={() => handleSubmitResponse("left")}
                   disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                  className="rounded-full bg-gray-900 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="call-option"
                 >
-                  Left
+                  Touch for left
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSubmitResponse("no_touch")}
                   disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                  className="rounded-full bg-gray-700 px-5 py-2 text-white transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="call-option"
                 >
-                  No Touch
+                  No touch
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSubmitResponse("right")}
                   disabled={isSubmittingResponse || isLoadingRandomClip || !currentClipId}
-                  className="rounded-full bg-orange-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="call-option"
                 >
-                  Right
+                  Touch for right
                 </button>
-              </div>
-              <div className="flex items-center">
+            </div>
+            <div>
                 <button
                   type="button"
                   onClick={handleViewResults}
@@ -922,30 +925,28 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                     !currentClipId ||
                     !hasSubmittedForCurrentClip
                   }
-                  className="rounded-full bg-blue-600 px-5 py-2 text-white transition-all duration-200 hover:scale-105 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="ghost-btn view-results"
                 >
-                  {isLoadingResults ? "Loading results..." : "View response"}
+                  {isLoadingResults ? "Loading results..." : "View community results →"}
                 </button>
-              </div>
             </div>
 
             {isSubmittingResponse ? (
-              <p className="mt-3 text-sm text-gray-700">Submitting response...</p>
+              <p className="status-note mt-3" role="status">Submitting response...</p>
             ) : null}
-            {responseMessage ? <p className="mt-3 text-sm text-green-700">{responseMessage}</p> : null}
-            {responseError ? <p className="mt-3 text-sm text-red-600">{responseError}</p> : null}
-            {resultsError ? <p className="mt-3 text-sm text-red-600">{resultsError}</p> : null}
+            {responseMessage ? <p className="status-note mt-3" role="status">{responseMessage}</p> : null}
+            {responseError ? <p className="status-note mt-3" data-error="true" role="alert">{responseError}</p> : null}
+            {resultsError ? <p className="status-note mt-3" data-error="true" role="alert">{resultsError}</p> : null}
 
             {aggregatedResults ? (
-              <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <p className="mb-3 text-sm text-gray-700">
-                  Other users&apos; responses ({aggregatedResults.total} total)
-                </p>
+              <div className="results-panel">
+                <p className="eyebrow">The community&apos;s view</p>
+                <h4>{aggregatedResults.total} {aggregatedResults.total === 1 ? "call" : "calls"} on this action</h4>
 
                 {([
-                  ["Left", aggregatedResults.counts.left],
-                  ["No Touch", aggregatedResults.counts.no_touch],
-                  ["Right", aggregatedResults.counts.right],
+                  ["Touch for left", aggregatedResults.counts.left],
+                  ["No touch", aggregatedResults.counts.no_touch],
+                  ["Touch for right", aggregatedResults.counts.right],
                 ] as const).map(([label, count]) => {
                   const percent =
                     aggregatedResults.total > 0
@@ -953,16 +954,16 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                       : 0;
 
                   return (
-                    <div key={label} className="mb-3 last:mb-0">
-                      <div className="mb-1 flex items-center justify-between text-sm text-gray-800">
+                    <div key={label} className="result-row">
+                      <div className="result-label">
                         <span>{label}</span>
                         <span>
                           {count} ({percent}%)
                         </span>
                       </div>
-                      <div className="h-3 w-full overflow-hidden rounded bg-gray-200">
+                      <div className="result-track">
                         <div
-                          className="h-full rounded bg-orange-500 transition-all"
+                          className="result-fill"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
@@ -971,9 +972,22 @@ export function VideoUpload({ canUpload = false }: { canUpload?: boolean }) {
                 })}
               </div>
             ) : null}
-          </>
-        ) : null}
-      </div>
+            </>
+          ) : (
+            <div className="clip-start">
+              <div className="clip-start-inner">
+                <p className="eyebrow">Ready when you are</p>
+                <h3 className="panel-title">Begin with a fresh action.</h3>
+                <p>A random fencing clip will appear here. Replay it, then make your own call before viewing the results.</p>
+                <button type="button" onClick={handleShowRandomClip} disabled={isLoadingRandomClip} className="primary-btn">
+                  {isLoadingRandomClip ? "Loading a clip..." : "Show me a clip ↗"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+      {uploadPanel}
     </div>
   );
 }

@@ -3,8 +3,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
-import { Container } from "../components/Container";
-import { Section } from "../components/Section";
+import { AuthShell } from "../components/AuthShell";
 import { formStyles } from "../constants/design-system";
 
 export default function AcceptInvitePage() {
@@ -73,11 +72,7 @@ export default function AcceptInvitePage() {
   }
 
   return (
-    <Section variant="gray" className="min-h-screen py-16">
-      <Container size="sm">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-2 text-4xl text-gray-900">Accept your invitation</h1>
-          <p className="mb-8 text-sm text-gray-600">Set a password to finish joining What&apos;s The Call.</p>
+    <AuthShell eyebrow="One last step" heading="Welcome to the conversation." description="Set a password to finish joining What's The Call.">
           {ready && (
             <form onSubmit={handleSubmit}>
               <div className={formStyles.inputGroup}>
@@ -97,9 +92,7 @@ export default function AcceptInvitePage() {
               </button>
             </form>
           )}
-          {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}
-        </div>
-      </Container>
-    </Section>
+          {message && <p className="status-note mt-4" role="status">{message}</p>}
+    </AuthShell>
   );
 }

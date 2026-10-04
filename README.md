@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+For new UI work, follow the [Editorial design guide](DESIGN.md).
+
 ## Invitation signup release
 
 Each verified, active member can generate five codes over their lifetime. A code can be claimed once. Signup sends a Supabase **Invite user** email; the recipient opens the link and sets a password. The sender is recorded on the new profile.

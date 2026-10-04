@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Container } from "../../components/Container";
-import { Section } from "../../components/Section";
 import { RecentClipsList } from "./RecentClipsList";
 
 export default async function RecentClipsPage() {
@@ -54,24 +51,12 @@ export default async function RecentClipsPage() {
   }, {});
 
   return (
-    <Section variant="gray" className="min-h-screen py-10 md:py-12">
-      <Container size="xl">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-3xl text-gray-900">My recent clips</h1>
-            <Link
-              href="/main"
-              className="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-800 transition hover:bg-gray-50"
-            >
-              Back to main page
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <RecentClipsList groupedRecentClips={groupedRecentClips} />
-          </div>
-        </div>
-      </Container>
-    </Section>
+    <div className="member-content page-wrap">
+      <header className="page-intro">
+        <div><p className="eyebrow">Your perspective</p><h1 className="page-title">Recent clips.</h1><p className="lede">Revisit the actions you&apos;ve judged and the calls you made.</p></div>
+        <span className="tag">Your history</span>
+      </header>
+      <div className="paper-panel"><RecentClipsList groupedRecentClips={groupedRecentClips} /></div>
+    </div>
   );
 }
