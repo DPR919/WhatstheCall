@@ -10,9 +10,9 @@ The [invitation functions migration](supabase/migrations/20260929054949_invitati
 
 In the Supabase dashboard, complete these launch settings:
 
-1. Under **Authentication → URL Configuration**, set the Site URL to `https://whatsthecall.net` and allow `https://whatsthecall.net/accept-invite` as a redirect URL. For local email testing, also allow `http://localhost:3000/accept-invite`.
+1. Under **Authentication → URL Configuration**, set Supabase's Site URL to `https://whatsthecall.net` and allow both `https://whatsthecall.net/accept-invite` and `http://localhost:3000/accept-invite` as exact redirect URLs. Supabase's Site URL is separate from the app's `SITE_URL` setting.
 2. Under **Authentication → Sign In / Providers**, disable public user signups when deploying this flow. Admin invitations still create users. Keep email confirmation enabled.
-3. Under **Authentication → Emails → Templates**, check the **Invite user** template. Its link must use `{{ .ConfirmationURL }}` so the invited user reaches `/accept-invite` after verification. This is separate from the password recovery template.
+3. Under **Authentication → Emails → Templates**, check the **Invite user** template. Its link must use `{{ .ConfirmationURL }}` so the invited user reaches `/accept-invite` after verification. If the email body names the destination, use `{{ .RedirectTo }}` rather than `{{ .SiteURL }}` so local and production invitations show their respective URLs. This is separate from the password recovery template.
 4. Signup defaults to `https://whatsthecall.net` in production and `http://localhost:3000` locally. Set `SITE_URL` in the Amplify environment only if the deployment uses a different origin. A configured production value must be an HTTPS origin, and its `/accept-invite` URL must be allowed in Supabase.
 5. Test a fresh code with a new email address: the second claim should fail, the invite email should arrive, the link should open the password form, and login should work after setting a password. Check that the inviter has four codes remaining and one redemption.
 
