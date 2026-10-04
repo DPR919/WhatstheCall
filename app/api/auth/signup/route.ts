@@ -8,6 +8,24 @@ const signupSchema = z.object({
   inviteCode: z.string().trim().min(3).max(100).transform((value) => value.toUpperCase()),
 });
 
+function inviteRedirectUrl(): string | null {
+  const configuredSiteUrl = process.env.SITE_URL?.trim();
+  const siteUrl = configuredSiteUrl ||
+    (process.env.NODE_ENV === "production" ? null : "http://localhost:3000");
+  if (!siteUrl) return null;
+
+  try {
+    const baseUrl = new URL(siteUrl);
+    if (baseUrl.protocol !== "http:" && baseUrl.protocol !== "https:") return null;
+    if (process.env.NODE_ENV === "production" && baseUrl.protocol !== "https:") return null;
+    if (baseUrl.username || baseUrl.password) return null;
+    if (baseUrl.pathname !== "/" || baseUrl.search || baseUrl.hash) return null;
+    return new URL("/accept-invite", baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   let body: unknown;
   try {
@@ -22,6 +40,12 @@ export async function POST(req: Request) {
   }
 
   const { email, displayName, inviteCode } = parsed.data;
+  const redirectTo = inviteRedirectUrl();
+  if (!redirectTo) {
+    console.error("[auth/signup] SITE_URL must be the HTTPS origin of this deployment");
+    return NextResponse.json({ error: "Signup is not configured for this site." }, { status: 500 });
+  }
+
   const { data: existingName, error: nameError } = await supabaseAdmin
     .from("profiles")
     .select("id")
@@ -46,9 +70,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    const siteUrl = process.env.SITE_URL ??
-      (process.env.NODE_ENV === "production" ? "https://whatsthecall.net" : "http://localhost:3000");
-    const redirectTo = new URL("/accept-invite", siteUrl).toString();
     const { data: invited, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         redirectTo,
