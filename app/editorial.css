@@ -44,8 +44,8 @@ button:disabled { cursor:not-allowed; opacity:.55; }
 .brand { display:inline-flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; font-family:Georgia,"Times New Roman",serif; font-size:1.38rem; font-style:italic; font-weight:700; letter-spacing:-.06em; white-space:nowrap; }
 .brand-mark { width:23px; height:23px; border:2px solid var(--accent); border-radius:50%; color:var(--accent); display:grid; place-items:center; font-family:Arial,sans-serif; font-size:.76rem; font-style:normal; letter-spacing:0; }
 .public-links { display:flex; align-items:center; gap:clamp(12px,2vw,30px); font-size:.84rem; }
-.public-links a:not(.primary-btn) { color:var(--ink); text-decoration:none; }
-.public-links a:not(.primary-btn):hover { color:var(--accent); }
+.public-links .about-link { color:var(--ink); text-decoration:none; }
+.public-links .about-link:hover { color:var(--accent); }
 .mobile-label { display:none; }
 .hero-grid { display:grid; grid-template-columns:1fr .93fr; min-height:600px; border-bottom:1px solid var(--line); }
 .hero-copy { padding:clamp(50px,7vw,110px) clamp(24px,5vw,80px) 50px max(24px,calc((100vw - 1180px)/2)); display:flex; flex-direction:column; justify-content:center; }
@@ -196,7 +196,7 @@ button:disabled { cursor:not-allowed; opacity:.55; }
   .brand { font-size:1.12rem; }
   .public-links { gap:12px; }
   .public-links .about-link { display:none; }
-  .public-links .primary-btn { padding:8px 11px; min-height:38px; }
+  .public-links .primary-btn,.public-links .secondary-btn { padding:8px 11px; min-height:38px; }
   .public-links a { white-space:nowrap; }
   .public-links .desktop-label { display:none; }
   .public-links .mobile-label { display:inline; }
@@ -223,4 +223,10 @@ button:disabled { cursor:not-allowed; opacity:.55; }
   .member-sidebar .brand { font-size:1.04rem; }
   .member-nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
   .member-nav a { white-space:normal; font-size:.76rem; }
+}
+@media (max-width:370px) {
+  .public-header { height:auto; padding-block:10px; }
+  .public-header-inner { flex-direction:column; align-items:stretch; gap:8px; }
+  .public-links { width:100%; gap:8px; }
+  .public-links .primary-btn,.public-links .secondary-btn { flex:1; }
 }

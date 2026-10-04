@@ -10,7 +10,7 @@ export default function Home() {
           <SiteBrand />
           <nav className="public-links" aria-label="Main navigation">
             <a href="#about" className="about-link">About the project</a>
-            <Link href="/login">Log in</Link>
+            <Link href="/login" className="secondary-btn">Log in</Link>
             <Link href="/signup" className="primary-btn"><span className="desktop-label">Join with an invite</span><span className="mobile-label">Join</span> <span aria-hidden="true">↗</span></Link>
           </nav>
         </div>
