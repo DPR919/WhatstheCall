@@ -11,8 +11,7 @@ const signupSchema = z.object({
 function inviteRedirectUrl(): string | null {
   const configuredSiteUrl = process.env.SITE_URL?.trim();
   const siteUrl = configuredSiteUrl ||
-    (process.env.NODE_ENV === "production" ? null : "http://localhost:3000");
-  if (!siteUrl) return null;
+    (process.env.NODE_ENV === "production" ? "https://whatsthecall.net" : "http://localhost:3000");
 
   try {
     const baseUrl = new URL(siteUrl);
