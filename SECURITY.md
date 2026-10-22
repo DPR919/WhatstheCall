@@ -38,6 +38,20 @@ The owner explicitly chose to retain Supabase Free. Leaked-password checks and m
 8. With a controlled mailbox, test new-code signup, email arrival, callback, password setup and login. Repeat the same registration and confirm it does not send another email. Have an administrator enroll and verify their own authenticator and securely back up the setup key. Confirm that a password-only admin session cannot upload.
 9. Verify live CSP/HSTS/cache headers, cross-user restrictions, signed video playback, admin upload and API denials after deployment. Existing API checks must remain in place even if middleware or layout behavior changes.
 
+## Password recovery
+
+`/forgot-password` requests a Supabase recovery email through Resend. Requests use Turnstile, the configured public-origin check and a 16 KiB body limit. The shared address quota is ten requests per 15-minute fixed window. Only keyed email hashes enter coordination storage: an atomic 60-second cooldown and three requests per hourly fixed window apply before a provider send attempt. Email quota/provider responses do not reveal account existence. Provider failures are logged by error code without email addresses or recovery tokens. Invalid CAPTCHA tokens cannot send email, but still consume the pre-send email reservation; the address quota also limits those attempts.
+
+The recovery template source is `infra/password-recovery-email.html`. Its canonical link is `/reset-password/confirm#token_hash=...`; URL fragments never reach the hosting server. The confirmation page removes the fragment from browser history immediately, keeps the token only in memory, and exchanges it only after the recipient clicks Continue. Reloading that page before continuing requires reopening the email. Supabase verifies only the `recovery` token type; invitation and ordinary login sessions cannot authorize this app's reset endpoint. The existing shared Supabase email-token expiry is preserved.
+
+After verification, an HttpOnly, Secure, SameSite=Strict cookie authorizes reset API calls for up to 15 minutes. It is signed with a domain-separated HMAC and bound to the verified user and Auth session ID. A service-only database function checks that the session still exists, is unexpired and belongs to an active member. Suspended accounts remain suspended. Verified MFA factors require an AAL2 session before password updates; the existing factor is retained. Losing an authenticator needs the separate owner-assisted recovery procedure below.
+
+Password updates require matching 12–128 character values on the server. Successful updates revoke refresh sessions globally and clear recovery cookies. If revocation fails, the page reports that the password changed and lets the recipient retry signout without changing it again. Previously issued access JWTs can remain valid until their existing expiry; global refresh-token revocation is not instantaneous access-token revocation.
+
+Recovery pages have no third-party scripts on a fresh document, use no-referrer/noindex headers and private/no-store caching. Turnstile is loaded only by forms that need it. No new paid service, runtime secret or AWS permission is required.
+
+Controlled integration verification uses a temporary member account, never an operator's password. Test coverage includes ordinary-session rejection, invalid/used link rejection, cookie/session replay, password validation, MFA enforcement and upgrade, refresh-session revocation, and cleanup of the temporary factor. Always verify the actual recovery template, CAPTCHA request, delivery, and callback after production deployment.
+
 ## Invitation recovery
 
 For an incomplete registration, first retry the exact code/email/display name. This retries completion only. The recipient's `/accept-invite` callback also attempts completion after validating the session.

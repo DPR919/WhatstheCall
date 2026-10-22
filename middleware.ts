@@ -23,6 +23,7 @@ export async function middleware(request: NextRequest) {
     ...(development ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
+  const recoveryPage = request.nextUrl.pathname === "/reset-password" || request.nextUrl.pathname.startsWith("/reset-password/");
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
   let response = NextResponse.next({ request: { headers: requestHeaders } });
@@ -44,6 +45,10 @@ export async function middleware(request: NextRequest) {
   }
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  if (recoveryPage) {
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 

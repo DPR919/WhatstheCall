@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import { headers } from "next/headers";
 import "./globals.css";
 
@@ -24,14 +23,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Reading the nonce opts pages into dynamic rendering; cached HTML must never
+  // Reading headers opts pages into dynamic rendering; cached HTML must never
   // reuse a CSP nonce across visitors.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  await headers();
   return (
     <html lang="en">
-      {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-        nonce={nonce} strategy="beforeInteractive" />}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

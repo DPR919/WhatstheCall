@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AuthShell } from "../components/AuthShell";
 import { formStyles } from "../constants/design-system";
 import { BotCheck } from "../components/BotCheck";
@@ -98,6 +99,7 @@ export default function LoginPage() {
           {message && <p className="status-note mt-4" role="status">{message}</p>}
 
           <div className="auth-bottom">
+            <p className="mb-3"><Link href="/forgot-password" className={formStyles.link}>Forgot password?</Link></p>
             Need an account?{" "}
             <button
               type="button"

@@ -2,7 +2,7 @@ import "server-only";
 import { serverSecret } from "./secrets";
 import { applicationOrigin } from "./policy";
 
-export async function verifyCaptcha(token: string | undefined, action: "login" | "signup", request: Request): Promise<boolean> {
+export async function verifyCaptcha(token: string | undefined, action: "login" | "signup" | "recovery", request: Request): Promise<boolean> {
   let secret: string | undefined;
   try { secret = await serverSecret("TURNSTILE_SECRET_KEY"); } catch { return false; }
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;

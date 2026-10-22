@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 
 type Turnstile = {
   render: (element: HTMLElement, options: Record<string, unknown>) => string;
@@ -8,7 +9,7 @@ type Turnstile = {
 };
 declare global { interface Window { turnstile?: Turnstile } }
 
-export function BotCheck({ action, onToken }: { action: "login" | "signup"; onToken: (token: string) => void }) {
+export function BotCheck({ action, onToken }: { action: "login" | "signup" | "recovery"; onToken: (token: string) => void }) {
   const container = useRef<HTMLDivElement>(null);
   const callback = useRef(onToken);
   const [failed, setFailed] = useState(false);
@@ -34,5 +35,8 @@ export function BotCheck({ action, onToken }: { action: "login" | "signup"; onTo
   }, [action, siteKey]);
 
   if (!siteKey) return null;
-  return <div className="mb-4"><div ref={container} />{failed && <p role="alert">The security check could not load. Please reload and try again.</p>}</div>;
+  return <>
+    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" />
+    <div className="mb-4"><div ref={container} />{failed && <p role="alert">The security check could not load. Please reload and try again.</p>}</div>
+  </>;
 }
