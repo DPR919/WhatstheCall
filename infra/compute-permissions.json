@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListClipsOnly",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::whatsthecall-videos",
+      "Condition": { "StringLike": { "s3:prefix": ["clips/", "clips/*"] } }
+    },
+    {
+      "Sid": "ReadAndUploadClips",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::whatsthecall-videos/clips/*"
+    },
+    {
+      "Sid": "ReadAppSecrets",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": [
+        "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/SUPABASE_SERVICE_ROLE_KEY",
+        "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/TURNSTILE_SECRET_KEY",
+        "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/RATE_LIMIT_SECRET"
+      ]
+    },
+    {
+      "Sid": "DecryptOnlyAppParametersViaSSM",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "arn:aws:kms:us-east-2:351849325450:key/*",
+      "Condition": { "StringEquals": {
+        "kms:ViaService": "ssm.us-east-2.amazonaws.com",
+        "kms:EncryptionContext:PARAMETER_ARN": [
+          "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/SUPABASE_SERVICE_ROLE_KEY",
+          "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/TURNSTILE_SECRET_KEY",
+          "arn:aws:ssm:us-east-2:351849325450:parameter/whatsthecall/production/RATE_LIMIT_SECRET"
+        ]
+      } }
+    }
+  ]
+}

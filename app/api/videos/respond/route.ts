@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isActiveMember } from "@/lib/supabase/access";
+import { isSameOriginMutation, readSmallJson } from "@/lib/security/policy";
 
 const submitResponseSchema = z.object({
   clipId: z.string().uuid(),
@@ -10,8 +11,9 @@ const submitResponseSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  if (!isSameOriginMutation(req)) return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
   try {
-    const body = await req.json();
+    const body = await readSmallJson(req);
     const parsed = submitResponseSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
 
     const { clipId, response } = parsed.data;
 
-    const { data: insertedResponse, error: insertError } = await supabaseAdmin
+    const { data: insertedResponse, error: insertError } = await (await getAdminClient())
       .from("clip_responses")
       .insert({
         clip_id: clipId,

@@ -2,11 +2,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 For new UI work, follow the [Editorial design guide](DESIGN.md).
 
-## Invitation signup release
+## Security and invitation signup
+
+See [SECURITY.md](SECURITY.md) for the security design, production prerequisites, recovery and rollback procedures. Run `npm test` for the security regression suite.
+
+### Invitation signup release
 
 Each verified, active member can generate five codes over their lifetime. A code can be claimed once. Signup sends a Supabase **Invite user** email; the recipient opens the link and sets a password. The sender is recorded on the new profile.
 
-The [invitation functions migration](supabase/migrations/20260929054949_invitation_signup.sql) is already applied to the live Supabase project, so local code generation can be tested. At launch, apply the separate [legacy code retirement migration](supabase/migrations/20260929060000_retire_legacy_invite_codes.sql). It deactivates creatorless codes, including the remaining multi-use seed code. The new signup flow rejects creatorless codes even before that retirement migration is applied.
+The [invitation functions migration](supabase/migrations/20260929054949_invitation_signup.sql) is already applied to the live Supabase project, so local code generation can be tested. The launch also applied the separate [legacy code retirement migration](supabase/migrations/20261022030139_retire_legacy_invite_codes.sql). It deactivated creatorless codes, including the remaining multi-use seed code. The new signup flow also rejects creatorless codes.
 
 In the Supabase dashboard, complete these launch settings:
 

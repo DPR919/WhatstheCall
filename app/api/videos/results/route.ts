@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isActiveMember } from "@/lib/supabase/access";
 
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 
     const { clipId } = parsed.data;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (await getAdminClient())
       .from("clip_responses")
       .select("response")
       .eq("clip_id", clipId)

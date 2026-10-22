@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { generateInviteCode } from "@/lib/utils/generateInviteCode";
+import { enforceLimits } from "@/lib/security/requests";
+import { isSameOriginMutation } from "@/lib/security/policy";
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user?.email_confirmed_at) {
     return NextResponse.json({ error: "Verified account required." }, { status: 401 });
   }
+  const limited = await enforceLimits("generate-invite", [{ name: "user", value: user.id, maximum: 10, seconds: 3600 }]);
+  if (limited) return limited;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { data: invite, error } = await supabaseAdmin.rpc("create_member_invite", {
+    const { data: invite, error } = await (await getAdminClient()).rpc("create_member_invite", {
       p_user_id: user.id,
       p_code: generateInviteCode(),
     });

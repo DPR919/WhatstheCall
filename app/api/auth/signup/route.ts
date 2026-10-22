@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
+import { isSameOriginMutation, readSmallJson } from "@/lib/security/policy";
+import { enforceLimits, limitPublicAuth } from "@/lib/security/requests";
+import { verifyCaptcha } from "@/lib/security/captcha";
 
 const signupSchema = z.object({
-  email: z.email().transform((value) => value.trim().toLowerCase()),
+  email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
   displayName: z.string().trim().min(2).max(50),
   inviteCode: z.string().trim().min(3).max(100).transform((value) => value.toUpperCase()),
+  captchaToken: z.string().max(2048).optional(),
 });
 
 function inviteRedirectUrl(): string | null {
@@ -26,9 +30,12 @@ function inviteRedirectUrl(): string | null {
 }
 
 export async function POST(req: Request) {
+  if (!isSameOriginMutation(req)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  const addressLimit = await limitPublicAuth(req, "signup");
+  if (addressLimit) return addressLimit;
   let body: unknown;
   try {
-    body = await req.json();
+    body = await readSmallJson(req);
   } catch {
     return NextResponse.json({ error: "Invalid signup data." }, { status: 400 });
   }
@@ -38,72 +45,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signup data." }, { status: 400 });
   }
 
-  const { email, displayName, inviteCode } = parsed.data;
+  const { email, displayName, inviteCode, captchaToken } = parsed.data;
+  const emailLimit = await enforceLimits("signup", [{ value: email, name: "email", maximum: 10, seconds: 900 }]);
+  if (emailLimit) return emailLimit;
+  if (!(await verifyCaptcha(captchaToken, "signup", req))) {
+    return NextResponse.json({ error: "Please complete the security check and try again." }, { status: 400 });
+  }
   const redirectTo = inviteRedirectUrl();
   if (!redirectTo) {
     console.error("[auth/signup] SITE_URL must be the HTTPS origin of this deployment");
     return NextResponse.json({ error: "Signup is not configured for this site." }, { status: 500 });
   }
 
-  const { data: existingName, error: nameError } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .eq("display_name", displayName)
-    .limit(1);
-  if (nameError) {
-    return NextResponse.json({ error: "Could not validate display name." }, { status: 500 });
-  }
-  if (existingName?.length) {
-    return NextResponse.json({ error: "Display name is already taken." }, { status: 400 });
-  }
-
-  // The database locks the invite row while claiming its one available use.
-  const { data: invite, error: claimError } = await supabaseAdmin
-    .rpc("claim_member_invite", { p_code: inviteCode });
+  const { data: registration, error: claimError } = await (await getAdminClient())
+    .rpc("reserve_member_registration", { p_code: inviteCode, p_email: email, p_display_name: displayName });
   if (claimError?.code === "P0001") {
-    return NextResponse.json({ error: "Invite code is invalid or already used." }, { status: 400 });
+    return NextResponse.json({ error: "Could not register with these details. Check your invite code and choose an available display name." }, { status: 400 });
   }
-  if (claimError || !invite) {
-    console.error("[auth/signup] Could not claim invite", claimError);
+  if (claimError || !registration) {
+    console.error("[auth/signup] Could not reserve registration", { code: claimError?.code });
     return NextResponse.json({ error: "Could not validate invite code." }, { status: 500 });
   }
 
   try {
-    const { data: invited, error: inviteError } =
-      await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        redirectTo,
-        data: { display_name: displayName },
+    if (registration.send_email) {
+      const { error: inviteError } = await (await getAdminClient()).auth.admin.inviteUserByEmail(email, {
+        redirectTo, data: { display_name: displayName },
       });
-
-    if (inviteError || !invited.user) {
-      console.error("[auth/signup] Could not send invitation", inviteError);
-      return NextResponse.json(
-        { error: "Could not send an invitation to this email address." },
-        { status: 400 },
-      );
+      if (inviteError) {
+        await (await getAdminClient()).rpc("mark_registration_delivery_failed", { p_registration_id: registration.id });
+        console.error("[auth/signup] Invitation delivery needs review", { registrationId: registration.id, code: inviteError.code });
+      }
     }
-
-    const { error: completeError } = await supabaseAdmin.rpc("complete_member_invite", {
-      p_invite_id: invite.id,
-      p_user_id: invited.user.id,
-      p_email: email,
-      p_display_name: displayName,
+    const { data: completed, error: completeError } = await (await getAdminClient()).rpc("finish_member_registration", {
+      p_registration_id: registration.id,
     });
-
     if (completeError) {
-      console.error("[auth/signup] Could not complete invitation", completeError);
-      return NextResponse.json({ error: "Could not complete signup. Please try again." }, { status: 500 });
+      console.error("[auth/signup] Registration completion needs retry", { registrationId: registration.id, code: completeError.code });
+      return NextResponse.json({ error: "Your invitation is reserved. Please try again with the same details." }, { status: 503 });
     }
-
+    if (!completed) return NextResponse.json({ error: "Your invitation is reserved. Check your email; if it has not arrived, contact support. Retrying will not send another email." }, { status: 409 });
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[auth/signup] Unexpected invitation error", error);
-    return NextResponse.json({ error: "Could not complete signup. Please try again." }, { status: 500 });
-  } finally {
-    // Once redeemed, release_member_invite leaves the code consumed.
-    const { error: releaseError } = await supabaseAdmin.rpc("release_member_invite", {
-      p_invite_id: invite.id,
-    });
-    if (releaseError) console.error("[auth/signup] Could not release invite claim", releaseError);
+  } catch {
+    console.error("[auth/signup] Registration needs reconciliation", { registrationId: registration.id });
+    return NextResponse.json({ error: "Your invitation is reserved. Please try again with the same details." }, { status: 503 });
   }
 }

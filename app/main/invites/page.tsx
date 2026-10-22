@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { GenerateInviteButton } from "./GenerateInviteButton";
 
 export default async function InvitesPage() {
@@ -9,10 +9,10 @@ export default async function InvitesPage() {
   if (!user) redirect("/login");
 
   const [{ data: profile }, { data: codes }] = await Promise.all([
-    supabaseAdmin.from("profiles")
+    (await getAdminClient()).from("profiles")
       .select("referral_limit, referral_generated_count")
       .eq("id", user.id).single(),
-    supabaseAdmin.from("invite_codes")
+    (await getAdminClient()).from("invite_codes")
       .select("id, code, use_count, is_active, created_at")
       .eq("created_by_user_id", user.id)
       .order("created_at", { ascending: false }),

@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "../components/AuthShell";
 import { formStyles } from "../constants/design-system";
+import { BotCheck } from "../components/BotCheck";
 
 interface LoginFormState {
   email: string;
@@ -20,6 +21,8 @@ export default function LoginPage() {
   const [form, setForm] = useState<LoginFormState>(initialForm);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,7 +33,7 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, captchaToken }),
       });
 
       const data = await response.json();
@@ -41,11 +44,14 @@ export default function LoginPage() {
       }
 
       setMessage("Login successful.");
-      router.push("/main");
+      router.push(data.redirectTo === "/security" ? "/security" : "/main");
+      router.refresh();
     } catch {
       setMessage("Unexpected error. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setCaptchaToken("");
+      setCaptchaAttempt((attempt) => attempt + 1);
     }
   };
 
@@ -83,7 +89,8 @@ export default function LoginPage() {
               />
             </div>
 
-            <button type="submit" className={formStyles.submitButton} disabled={isSubmitting}>
+            <BotCheck key={captchaAttempt} action="login" onToken={setCaptchaToken} />
+            <button type="submit" className={formStyles.submitButton} disabled={isSubmitting || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken)}>
               {isSubmitting ? "Signing in..." : "Log in"}
             </button>
           </form>

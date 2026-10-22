@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { hasVerifiedAdminSession } from "@/lib/security/admin";
+import { isSameOriginMutation, readSmallJson } from "@/lib/security/policy";
 
 const registerClipSchema = z.object({
   s3Key: z.string().trim().min(1).max(2048),
@@ -22,8 +24,9 @@ function emptyToNull(value?: string) {
 }
 
 export async function POST(req: Request) {
+  if (!isSameOriginMutation(req)) return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
   try {
-    const body = await req.json();
+    const body = await readSmallJson(req);
     const parsed = registerClipSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -57,8 +60,11 @@ export async function POST(req: Request) {
     if (profile?.role !== "admin" || profile.status !== "active") {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
+    if (!(await hasVerifiedAdminSession(supabase))) {
+      return NextResponse.json({ error: "Verify your authenticator at /security before uploading." }, { status: 403 });
+    }
 
-    const { data: insertedClip, error: insertError } = await supabaseAdmin
+    const { data: insertedClip, error: insertError } = await (await getAdminClient())
       .from("clips")
       .insert({
         s3_key: s3Key,
@@ -85,7 +91,7 @@ export async function POST(req: Request) {
     const isDuplicateKey = insertError?.code === "23505";
 
     if (isDuplicateKey) {
-      const { data: existingClip, error: fetchExistingError } = await supabaseAdmin
+      const { data: existingClip, error: fetchExistingError } = await (await getAdminClient())
         .from("clips")
         .select(
           "id, s3_key, uploaded_by_user_id, status, created_at, title, event_name, left_fencer, right_fencer, weapon, source_url, notes, score_at_touch",

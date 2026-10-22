@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { s3Client } from "@/lib/aws/s3";
 import { createClient } from "@/lib/supabase/server";
+import { hasVerifiedAdminSession } from "@/lib/security/admin";
+import { isSameOriginMutation, readSmallJson } from "@/lib/security/policy";
 
 const presignBodySchema = z.object({
   fileName: z.string().min(1).max(255),
@@ -33,6 +35,7 @@ function sanitizeFileName(fileName: string) {
 }
 
 export async function POST(req: Request) {
+  if (!isSameOriginMutation(req)) return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
   try {
     const supabase = await createClient();
     const {
@@ -56,8 +59,11 @@ export async function POST(req: Request) {
     if (profile?.role !== "admin" || profile.status !== "active") {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
+    if (!(await hasVerifiedAdminSession(supabase))) {
+      return NextResponse.json({ error: "Verify your authenticator at /security before uploading." }, { status: 403 });
+    }
 
-    const body = await req.json();
+    const body = await readSmallJson(req);
     const parsed = presignBodySchema.safeParse(body);
 
     if (!parsed.success) {

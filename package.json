@@ -2,27 +2,29 @@
   "name": "whatsthecall",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test tests/security.test.mjs tests/registration.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1015.0",
+    "@aws-sdk/client-ssm": "3.1015.0",
     "@aws-sdk/s3-request-presigner": "^3.1015.0",
-    "@prisma/client": "^7.4.2",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.2",
-    "aws-amplify": "^6.16.2",
     "next": "15.5.27",
-    "prisma": "^7.4.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-hook-form": "^7.71.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.15",
     "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -35,7 +37,10 @@
   },
   "overrides": {
     "next": {
-      "postcss": "8.5.28"
-    }
+      "postcss": "8.5.28",
+      "sharp": "0.35.5"
+    },
+    "ws": "8.21.0",
+    "source-map-js": "1.2.2"
   }
 }

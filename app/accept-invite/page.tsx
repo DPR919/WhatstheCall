@@ -40,6 +40,12 @@ export default function AcceptInvitePage() {
         setMessage("This invitation link is invalid or expired.");
         return;
       }
+      // Recover a registration if its sender stopped after Auth created the user.
+      const completion = await fetch("/api/auth/complete-invite", { method: "POST" });
+      if (!completion.ok) {
+        if (!cancelled) setMessage("Your invitation needs support. Please try again later.");
+        return;
+      }
       const { data: profile } = await supabase.from("profiles")
         .select("id, status").eq("id", user.id).maybeSingle();
       if (cancelled) return;
@@ -79,13 +85,13 @@ export default function AcceptInvitePage() {
                 <label htmlFor="password" className={formStyles.label}>Password</label>
                 <input id="password" type="password" autoComplete="new-password"
                   className={formStyles.input} value={password}
-                  onChange={(event) => setPassword(event.target.value)} minLength={8} required />
+                  onChange={(event) => setPassword(event.target.value)} minLength={12} maxLength={128} required />
               </div>
               <div className={formStyles.inputGroup}>
                 <label htmlFor="confirmPassword" className={formStyles.label}>Confirm password</label>
                 <input id="confirmPassword" type="password" autoComplete="new-password"
                   className={formStyles.input} value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required />
+                  onChange={(event) => setConfirmPassword(event.target.value)} minLength={12} maxLength={128} required />
               </div>
               <button type="submit" className={formStyles.submitButton} disabled={saving}>
                 {saving ? "Saving..." : "Set password"}

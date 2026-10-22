@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteBrand } from "../components/SiteBrand";
 import { MemberNavigation } from "../components/MemberNavigation";
 import { LogoutButton } from "../components/LogoutButton";
+import { needsAdminMfa } from "@/lib/security/policy";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   async function handleLogout() {
@@ -20,6 +21,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const { data: profile } = await supabase.from("profiles")
     .select("id, status, role, display_name").eq("id", user.id).maybeSingle();
   if (!profile || profile.status !== "active") redirect("/login");
+  const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError || needsAdminMfa(profile.role, assurance?.currentLevel) ||
+    (assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2")) redirect("/security");
   const displayName = profile.display_name ?? user.email ?? "Member";
   const canUpload = profile.role === "admin";
 

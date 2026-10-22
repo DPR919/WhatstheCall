@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "../components/AuthShell";
 import { formStyles } from "../constants/design-system";
+import { BotCheck } from "../components/BotCheck";
 
 interface SignupFormState {
   email: string;
@@ -22,6 +23,8 @@ export default function SignupPage() {
   const [form, setForm] = useState<SignupFormState>(initialForm);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,6 +40,7 @@ export default function SignupPage() {
           email: form.email,
           displayName: form.displayName,
           inviteCode: form.inviteCode,
+          captchaToken,
         }),
       });
 
@@ -53,6 +57,8 @@ export default function SignupPage() {
       setMessage("Unexpected error. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setCaptchaToken("");
+      setCaptchaAttempt((attempt) => attempt + 1);
     }
   };
 
@@ -106,7 +112,8 @@ export default function SignupPage() {
               />
             </div>
 
-            <button type="submit" className={formStyles.submitButton} disabled={isSubmitting}>
+            <BotCheck key={captchaAttempt} action="signup" onToken={setCaptchaToken} />
+            <button type="submit" className={formStyles.submitButton} disabled={isSubmitting || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken)}>
               {isSubmitting ? "Sending invitation..." : "Send invitation email"}
             </button>
           </form>

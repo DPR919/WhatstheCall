@@ -6,7 +6,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { s3Client } from "@/lib/aws/s3";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isActiveMember } from "@/lib/supabase/access";
 
@@ -78,7 +78,7 @@ function pickRandomClip(items: ClipRow[]) {
 }
 
 async function ensureClipRecordForS3Key(s3Key: string) {
-  const { data: insertedClip, error: insertError } = await supabaseAdmin
+  const { data: insertedClip, error: insertError } = await (await getAdminClient())
     .from("clips")
     .insert({
       s3_key: s3Key,
@@ -93,10 +93,11 @@ async function ensureClipRecordForS3Key(s3Key: string) {
 
   const isDuplicateKey = insertError?.code === "23505";
   if (isDuplicateKey) {
-    const { data: existingClip, error: fetchExistingError } = await supabaseAdmin
+    const { data: existingClip, error: fetchExistingError } = await (await getAdminClient())
       .from("clips")
       .select("id, s3_key")
-      .eq("s3_key", s3Key)
+        .eq("s3_key", s3Key)
+        .eq("status", "active")
       .maybeSingle();
 
     if (!fetchExistingError && existingClip) {
@@ -137,7 +138,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
-    const { data: activeClips, error: clipsError } = await supabaseAdmin
+    const { data: activeClips, error: clipsError } = await (await getAdminClient())
       .from("clips")
       .select("id, s3_key")
       .eq("status", "active")
@@ -155,7 +156,7 @@ export async function GET() {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - timeWindow);
 
-    const { data: recentResponses, error: responsesError } = await supabaseAdmin
+    const { data: recentResponses, error: responsesError } = await (await getAdminClient())
       .from("clip_responses")
       .select("clip_id")
       .eq("user_id", user.id)
