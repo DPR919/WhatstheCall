@@ -2,7 +2,7 @@
 
 ## Production status — October 21, 2026
 
-Amplify release 27 successfully built, deployed and verified the security implementation in commit `a1feca2`. Automatic builds remain disabled; future releases require an explicit deployment. All 16 security tests and lint passed in the production build.
+Amplify release 28 deployed the security implementation and proxy-origin correction in commit `1152eb6`. Automatic builds remain disabled; future releases require an explicit deployment. All 17 security tests and lint passed in the production build. Live requests with the public browser Origin now reach login validation; requests from another origin still return 403.
 
 Live checks confirmed fresh matching CSP nonces, HSTS, private/no-store caching, anonymous member redirects, anonymous video/upload rejection, and cross-origin login/signup rejection. The login limiter successfully fetched encrypted runtime secrets and updated the private database counters. Supabase Turnstile protection is saved and rejects invalid tokens directly at its Auth endpoint. Supplied test addresses in `X-Forwarded-For` were not used as limiter identities; CloudFront appends its observed viewer address ([AWS documentation](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html)).
 
