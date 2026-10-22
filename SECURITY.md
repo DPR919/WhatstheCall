@@ -1,8 +1,10 @@
 # Security operations and rollout
 
-## Production status — October 21, 2026
+## Production status — October 22, 2026
 
-Amplify release 28 deployed the security implementation and proxy-origin correction in commit `1152eb6`. Automatic builds remain disabled; future releases require an explicit deployment. All 17 security tests and lint passed in the production build. Live requests with the public browser Origin now reach login validation; requests from another origin still return 403.
+Amplify release 30 deployed password recovery in commit `d7ee836`, building on the earlier hardening and proxy-origin correction. Automatic builds remain disabled; future releases require an explicit deployment. All 27 security tests, lint and the production build passed. Live requests with the public browser Origin reach validation; cross-origin mutations still return 403.
+
+Password recovery passed 23 live integration checks, including fresh magic-link rejection, standard and MFA-protected resets, session revocation and replay rejection. A real app-requested email passed SPF/DKIM/DMARC over TLS 1.3 and its delivered token completed recovery in an isolated session. The old password was then rejected and the replacement accepted by Supabase. After the temporary account was removed, another request for that address showed the same neutral confirmation, created no account and sent no email. The temporary Auth account, profile, name claim, authenticator and test sessions were cleaned up. Verification reports are saved outside the repository under `../security-review/recovery-*.json`.
 
 Live checks confirmed fresh matching CSP nonces, HSTS, private/no-store caching, anonymous member redirects, anonymous video/upload rejection, and cross-origin login/signup rejection. The login limiter successfully fetched encrypted runtime secrets and updated the private database counters. Supabase Turnstile protection is saved and rejects invalid tokens directly at its Auth endpoint. Supplied test addresses in `X-Forwarded-For` were not used as limiter identities; CloudFront appends its observed viewer address ([AWS documentation](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html)).
 
@@ -49,6 +51,8 @@ After verification, an HttpOnly, Secure, SameSite=Strict cookie authorizes reset
 Password updates require matching 12–128 character values on the server. Successful updates revoke refresh sessions globally and clear recovery cookies. If revocation fails, the page reports that the password changed and lets the recipient retry signout without changing it again. Previously issued access JWTs can remain valid until their existing expiry; global refresh-token revocation is not instantaneous access-token revocation.
 
 Recovery pages have no third-party scripts on a fresh document, use no-referrer/noindex headers and private/no-store caching. Turnstile is loaded only by forms that need it. No new paid service, runtime secret or AWS permission is required.
+
+Operators should initiate recovery through the app's Forgot Password form. Dashboard/API-generated links without an app-recorded reset intent are deliberately rejected. An intent is recorded only after the provider accepts a reset request; if that recording fails, a new request after the cooldown is needed. Supabase's account-dependent delivery errors remain private.
 
 Controlled integration verification uses a temporary member account, never an operator's password. Test coverage includes ordinary-session rejection, invalid/used link rejection, cookie/session replay, password validation, MFA enforcement and upgrade, refresh-session revocation, and cleanup of the temporary factor. Always verify the actual recovery template, CAPTCHA request, delivery, and callback after production deployment.
 
