@@ -17,11 +17,22 @@ export async function POST(request: Request) {
     try { body = z.object({ tokenHash: z.string().regex(/^[A-Za-z0-9_-]{20,512}$/) }).safeParse(await readSmallJson(request)); } catch { /* handled below */ }
     if (!body?.success) return NextResponse.json({ error: "This recovery link is invalid or expired. Request a new one." }, { status: 400 });
     await clearRecoveryGrant();
+    // GoTrue shares recovery/magic-link token storage. The fixed `type` alone
+    // is insufficient: require an intent recorded by our reset request handler.
+    const { data: expectedUserId, error: intentError } = await (await getAdminClient()).rpc("claim_password_recovery_intent", {
+      p_token_hash: body.data.tokenHash,
+    });
+    if (intentError) throw new Error("Recovery intent unavailable");
+    if (!expectedUserId) return NextResponse.json({ error: "This recovery link is invalid, expired, or already used. Request a new one." }, { status: 400 });
     const client = await createClient();
     // The caller cannot select invite, signup or magic-link token types.
     const { data, error } = await client.auth.verifyOtp({ token_hash: body.data.tokenHash, type: "recovery" });
     if (error || !data.user?.email_confirmed_at || !data.session) {
       return NextResponse.json({ error: "This recovery link is invalid, expired, or already used. Request a new one." }, { status: 400 });
+    }
+    if (data.user.id !== expectedUserId) {
+      await client.auth.signOut({ scope: "local" });
+      return NextResponse.json({ error: "This recovery link could not be verified. Request a new one." }, { status: 400 });
     }
     const { data: claims, error: claimsError } = await client.auth.getClaims();
     const sessionId = claims?.claims.session_id;

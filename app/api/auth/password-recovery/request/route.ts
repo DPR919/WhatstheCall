@@ -35,12 +35,19 @@ export async function POST(request: Request) {
     const auth = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
+    const requestedAfter = new Date().toISOString();
     const { error } = await auth.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/reset-password/confirm`, captchaToken: authCaptcha ? captchaToken : undefined,
     });
     if (error?.code === "captcha_failed") return NextResponse.json({ error: "The security check expired. Please try again." }, { status: 400 });
     // Provider errors may depend on account existence; never expose them publicly.
     if (error) console.error("[recovery] Email request failed", { code: error.code });
+    if (!error) {
+      const { error: intentError } = await (await getAdminClient()).rpc("record_password_recovery_intent", {
+        p_email: email, p_requested_after: requestedAfter,
+      });
+      if (intentError) console.error("[recovery] Could not record recovery request", { code: intentError.code });
+    }
     return accepted();
   } catch {
     return NextResponse.json({ error: "Password recovery is temporarily unavailable. Please try again later." }, { status: 503 });

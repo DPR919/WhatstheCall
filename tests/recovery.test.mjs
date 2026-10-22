@@ -76,17 +76,20 @@ before(async () => {
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema app_private; revoke all on schema app_private from public;
     create schema auth;
+    create table auth.users(id uuid primary key, email text, recovery_token text, recovery_sent_at timestamptz);
     create table auth.sessions(id uuid primary key, user_id uuid not null, not_after timestamptz);
     create table public.profiles(id uuid primary key, status text);
     create table app_private.request_limits(key_hash text, bucket bigint, window_seconds int, attempts int, expires_at timestamptz,
       primary key(key_hash,bucket,window_seconds));
     insert into public.profiles values ('${userId}','active');
+    insert into auth.users values ('${userId}','qa@example.test',repeat('r',64),now());
     insert into auth.sessions values ('${sessionId}','${userId}',null);
   `);
   const security = await readFile(new URL("../supabase/migrations/20261022030026_security_hardening.sql", import.meta.url), "utf8");
   const consume = security.slice(security.indexOf("create function public.consume_request_limit"), security.indexOf("create function public.reserve_member_registration"));
   await db.exec(consume);
   await db.exec(await readFile(new URL("../supabase/migrations/20261022050421_password_recovery.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20261022052159_restrict_password_recovery_tokens.sql", import.meta.url), "utf8"));
 });
 after(() => db.close());
 
@@ -119,7 +122,30 @@ test("anonymous and member roles cannot inspect sessions, claim email quotas or 
   for (const role of ["anon", "authenticated"]) {
     assert.equal(await value("select has_function_privilege($1,'public.claim_password_recovery_email(text)','execute')", [role]), false);
     assert.equal(await value("select has_function_privilege($1,'public.password_recovery_session_is_active(uuid,uuid)','execute')", [role]), false);
+    assert.equal(await value("select has_function_privilege($1,'public.record_password_recovery_intent(text,timestamptz)','execute')", [role]), false);
+    assert.equal(await value("select has_function_privilege($1,'public.claim_password_recovery_intent(text)','execute')", [role]), false);
     assert.equal(await value("select has_table_privilege($1,'app_private.recovery_email_cooldowns','select')", [role]), false);
   }
   assert.equal(await value("select relrowsecurity from pg_class where oid='app_private.recovery_email_cooldowns'::regclass"), true);
+});
+
+test("only a recorded reset request can authorize a token, with one atomic claim", async () => {
+  const token = "r".repeat(64);
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", [token]), null);
+  assert.equal(await value("select public.record_password_recovery_intent('qa@example.test',now())"), true);
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", ["magiclink".repeat(8)]), null);
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", [token]), userId);
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", [token]), null);
+  assert.equal(await value("select token_digest from app_private.password_recovery_intents") === token, false);
+});
+
+test("stale provider state and expired or suspended reset intents cannot authorize recovery", async () => {
+  await db.exec("update auth.users set recovery_token=repeat('s',64), recovery_sent_at=now()-interval '2 hours'");
+  assert.equal(await value("select public.record_password_recovery_intent('qa@example.test',now())"), false);
+  await db.exec("update auth.users set recovery_sent_at=now()");
+  assert.equal(await value("select public.record_password_recovery_intent('qa@example.test',now())"), true);
+  await db.exec("update public.profiles set status='suspended'");
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", ["s".repeat(64)]), null);
+  await db.exec("update public.profiles set status='active'; update app_private.password_recovery_intents set expires_at=now()-interval '1 second'");
+  assert.equal(await value("select public.claim_password_recovery_intent($1)", ["s".repeat(64)]), null);
 });
