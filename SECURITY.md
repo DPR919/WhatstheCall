@@ -1,5 +1,17 @@
 # Security operations and rollout
 
+## Production status — October 21, 2026
+
+Amplify release 27 successfully built, deployed and verified the security implementation in commit `a1feca2`. Automatic builds remain disabled; future releases require an explicit deployment. All 16 security tests and lint passed in the production build.
+
+Live checks confirmed fresh matching CSP nonces, HSTS, private/no-store caching, anonymous member redirects, anonymous video/upload rejection, and cross-origin login/signup rejection. The login limiter successfully fetched encrypted runtime secrets and updated the private database counters. Supabase Turnstile protection is saved and rejects invalid tokens directly at its Auth endpoint. Supplied test addresses in `X-Forwarded-For` were not used as limiter identities; CloudFront appends its observed viewer address ([AWS documentation](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html)).
+
+Legacy S3 keys and the Supabase service key were removed from Amplify's app environment; the production branch has no private environment overrides. The new runtime configuration artifact contains only the allowed non-secret settings. Older deployments and local development credentials still require separate retirement/rotation after signed-in playback is confirmed; removing build settings does not revoke credentials already issued.
+
+Administrator authenticator enrollment, signed-in playback/upload, and a fresh invitation email-to-password walkthrough still require user participation. Automated transaction tests cover invitation reservation, duplicate requests, interrupted completion and access restrictions; they do not replace the production recipient walkthrough.
+
+The owner explicitly chose to retain Supabase Free. Leaked-password checks and managed daily backups remain unavailable; no paid upgrade was made. Export/restore testing and S3 version retention remain outstanding.
+
 ## Implemented protections
 
 - Supabase validates identity; member routes require verified email and an active profile. Upload APIs also require the `admin` database role and an `aal2` session. User-editable Auth metadata never supplies authorization.
