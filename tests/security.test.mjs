@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clientAddress, isSameOriginMutation, needsAdminMfa, privateLimitKey, readSmallJson } from "../lib/security/policy.ts";
+import { applicationOrigin, clientAddress, isSameOriginMutation, needsAdminMfa, privateLimitKey, readSmallJson } from "../lib/security/policy.ts";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -28,6 +28,27 @@ test("mutations reject cross-site and mismatched origins", () => {
   assert.equal(isSameOriginMutation(request({ origin: "null" })), false);
   assert.equal(isSameOriginMutation(request({ "sec-fetch-site": "cross-site" })), false);
   assert.equal(isSameOriginMutation(request({ origin: "https://www.whatsthecall.net" })), true);
+});
+
+test("proxied mutations use the configured public origin and ignore spoofed hosts", () => {
+  const previous = process.env.SITE_URL;
+  process.env.SITE_URL = "https://www.whatsthecall.net";
+  const request = (headers) => new Request("http://localhost:3000/api/auth/login", { method: "POST", headers });
+  try {
+    const valid = request({ origin: "https://www.whatsthecall.net", "sec-fetch-site": "same-origin" });
+    assert.equal(isSameOriginMutation(valid), true);
+    assert.equal(applicationOrigin(valid), "https://www.whatsthecall.net");
+    assert.equal(isSameOriginMutation(request({ origin: "https://attacker.example", host: "attacker.example",
+      "x-forwarded-host": "attacker.example", "x-forwarded-proto": "https" })), false);
+    assert.equal(isSameOriginMutation(request({ origin: "http://localhost:3000" })), false);
+    assert.equal(isSameOriginMutation(request({ origin: "https://www.whatsthecall.net", "sec-fetch-site": "cross-site" })), false);
+    for (const invalid of ["", "https://user:pass@www.whatsthecall.net", "https://www.whatsthecall.net/path", "http://www.whatsthecall.net", "invalid"]) {
+      assert.equal(applicationOrigin(valid, invalid, true), null);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.SITE_URL;
+    else process.env.SITE_URL = previous;
+  }
 });
 
 test("JSON parsing bounds actual bytes, even without Content-Length", async () => {

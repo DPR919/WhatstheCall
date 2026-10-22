@@ -1,5 +1,6 @@
 import "server-only";
 import { serverSecret } from "./secrets";
+import { applicationOrigin } from "./policy";
 
 export async function verifyCaptcha(token: string | undefined, action: "login" | "signup", request: Request): Promise<boolean> {
   let secret: string | undefined;
@@ -16,7 +17,8 @@ export async function verifyCaptcha(token: string | undefined, action: "login" |
       signal: AbortSignal.timeout(10000), cache: "no-store",
     });
     const result = await response.json();
+    const origin = applicationOrigin(request);
     return response.ok && result.success === true && result.action === action &&
-      result.hostname === new URL(request.url).hostname;
+      origin !== null && result.hostname === new URL(origin).hostname;
   } catch { return false; }
 }

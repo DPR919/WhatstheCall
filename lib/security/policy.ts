@@ -17,11 +17,30 @@ export function clientAddress(headers: Headers, trustedHeader?: string): string 
   return isIP(address) ? address : "shared";
 }
 
+export function applicationOrigin(
+  request: Request,
+  siteUrl = process.env.SITE_URL,
+  production = process.env.NODE_ENV === "production",
+): string | null {
+  try {
+    // Hosting proxies can give Next.js an internal request URL. Only deployment
+    // configuration determines the public origin; forwarding headers cannot.
+    const configured = siteUrl?.trim();
+    if (!configured && production) return null;
+    const url = new URL(configured || request.url);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (production && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    if (configured && (url.pathname !== "/" || url.search || url.hash)) return null;
+    return url.origin;
+  } catch { return null; }
+}
+
 export function isSameOriginMutation(request: Request): boolean {
   if (request.headers.get("sec-fetch-site") === "cross-site") return false;
   const origin = request.headers.get("origin");
   if (!origin) return true; // Non-browser API clients still pass other controls.
-  try { return new URL(origin).origin === new URL(request.url).origin; }
+  try { return new URL(origin).origin === applicationOrigin(request); }
   catch { return false; }
 }
 

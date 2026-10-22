@@ -14,6 +14,7 @@ The owner explicitly chose to retain Supabase Free. Leaked-password checks and m
 
 ## Implemented protections
 
+- Origin checks and signup CAPTCHA hostname checks use the configured public `SITE_URL`, because Amplify may supply an internal request URL. Host and forwarding headers cannot override the configured origin. Regression coverage includes the public browser Origin with an internal server URL and forged forwarding headers.
 - Supabase validates identity; member routes require verified email and an active profile. Upload APIs also require the `admin` database role and an `aal2` session. User-editable Auth metadata never supplies authorization.
 - Administrators enroll or verify a TOTP authenticator at `/security` before entering `/main`. Upload authorization is independently enforced in the API. Existing eight-character passwords still work at login; new passwords must meet the live Auth policy (12 characters).
 - Signup reserves one code, email, and normalized display name in one database transaction before sending an invitation. Only its first request may send email. Retries reconcile against trusted Auth email/invitation timestamps and complete the same registration. A crash after Auth creates the user can also be recovered when the recipient opens the invitation. A code is never automatically freed after delivery is attempted.
